@@ -35,7 +35,7 @@ const sendMailFetcher = async (_url: string, { arg }: { arg: { email: string; ca
 };
 
 async function sendPhoneFetcher(url: string, { arg }: { arg: { phone: string; captcha: any } }) {
-  const response = await fetch(`${BACKEND_URL}/phone/code`, {
+  const response = await fetch(`${BACKEND_URL}/user/phone/code`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -206,15 +206,15 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
             if (response.ok && data.code === 20000) {
               notifications.show({
                 title: '操作成功',
-                message: action === 'login' ? '欢迎回来！' : '操作已完成',
+                message: action === 'login' ? '欢迎回来！' : '注册成功！',
                 color: 'teal',
                 autoClose: 2000,
               });
 
-              if (action === 'login' && data.data) {
+              if ((action === 'login' || action === 'register') && data.data) {
                 const date = new Date();
                 date.setDate(date.getDate() + 7);
-                document.cookie = `loginToken=${data.data.token}; expires=${date.toUTCString()};`;
+                document.cookie = `loginToken=${data.data.token}; expires=${date.toUTCString()}; path=/; SameSite=Strict`;
                 localStorage.setItem('loginToken', data.data.token ?? '');
 
                 setTimeout(() => {
@@ -288,14 +288,14 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
     initialValues: {
       username: '',
       email: '',
-      emailCode: '',
+      code: '',
       password: '',
       confirmPassword: '',
     },
     validate: {
       username: (value) => (value.length < 2 ? '用户名至少需要2个字符' : null),
       email: (value) => (/^\S+@\S+$/.test(value) ? null : '请输入有效的邮箱地址'),
-      emailCode: (value) => (/^\d{6}$/.test(value) ? null : '验证码必须是6位数字'),
+      code: (value) => (/^\d{6}$/.test(value) ? null : '验证码必须是6位数字'),  // 已修改为 code
       password: (value) => (value.length < 6 ? '密码至少需要6个字符' : null),
       confirmPassword: (value, values) =>
         value !== values.password ? '两次输入的密码不一致' : null,
@@ -388,7 +388,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                   label="验证码"
                   placeholder="请输入验证码"
                   radius="md"
-                  {...registerForm.getInputProps('emailCode')}
+                  {...registerForm.getInputProps('code')}
                 />
                 <Button
                   style={{ marginTop: 'var(--mantine-spacing-lg)' }}
