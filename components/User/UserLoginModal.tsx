@@ -429,9 +429,56 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
       case 'forgot':
         return (
           <form
-            onSubmit={emailForm.onSubmit((values) =>
-              handleFormSubmitWithCaptcha(values, 'resetPassword')
-            )}
+            onSubmit={(e) => {
+              e.preventDefault();  // 阻止表单默认提交行为
+              try {
+                // @ts-ignore
+                const captcha = new TencentCaptcha('190249560', async (res) => {
+                  if (res.ret === 0) {
+                    try {
+                      const response = await fetch(`${BACKEND_URL}/user/forget`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'captcha': JSON.stringify(res),
+                        },
+                        body: JSON.stringify({ email: emailForm.values.email }),
+                      });
+
+                      const data = await response.json();
+
+                      if (data.code === 20000) {
+                        notifications.show({
+                          title: '发送成功',
+                          message: '重置邮件已发送，请查收',
+                          color: 'teal',
+                        });
+                        handleClose();
+                      } else {
+                        notifications.show({
+                          title: '发送失败',
+                          message: data.message || '请稍后重试',
+                          color: 'red',
+                        });
+                      }
+                    } catch (error) {
+                      notifications.show({
+                        title: '发送失败',
+                        message: '网络错误，请稍后重试',
+                        color: 'red',
+                      });
+                    }
+                  }
+                });
+                captcha.show();
+              } catch (error) {
+                notifications.show({
+                  title: '系统错误',
+                  message: '验证码加载失败',
+                  color: 'red',
+                });
+              }
+            }}
           >
             <Stack>
               <TextInput
