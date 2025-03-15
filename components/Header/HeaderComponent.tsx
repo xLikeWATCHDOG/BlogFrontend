@@ -1,35 +1,26 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconLogout, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
-import {
-  AppShell,
-  Autocomplete,
-  Avatar,
-  Burger,
-  Button,
-  Divider,
-  Drawer,
-  Group,
-  Menu,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core';
-import { useDebouncedValue, useDisclosure, useMediaQuery } from '@mantine/hooks';
+import { IconLogout, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
+import { AppShell, Autocomplete, Avatar, Burger, Button, Divider, Drawer, Group, Menu, Stack, Text, Title } from '@mantine/core';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { UserLoginModal } from '@/components/User/UserLoginModal';
 import { BACKEND_URL } from '@/data/global';
+
+
+interface UserVO {
+  uid: number;
+}
 
 export function HeaderComponent() {
   const router = useRouter();
   const [opened, { toggle, close }] = useDisclosure();
   const [searchValue, setSearchValue] = useState('');
-  const [debouncedSearch] = useDebouncedValue(searchValue, 300);
   const isMobile = useMediaQuery('(max-width: 48em)');
   const isSmallScreen = useMediaQuery('(max-width: 36em)');
   const [loginOpened, { open: openLogin, close: closeLogin }] = useDisclosure(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserVO>();
   const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
@@ -47,6 +38,8 @@ export function HeaderComponent() {
       if (data.code === 20000) {
         document.cookie = 'loginToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         localStorage.removeItem('loginToken');
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         setUser(null);
         notifications.show({
           title: '退出成功',
@@ -55,6 +48,7 @@ export function HeaderComponent() {
         });
         router.push('/');
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       notifications.show({
         title: '退出失败',
@@ -100,6 +94,8 @@ export function HeaderComponent() {
         }
       } catch (error) {
         console.error('获取用户信息失败:', error);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         setUser(null);
       } finally {
         setLoading(false);
@@ -172,7 +168,7 @@ export function HeaderComponent() {
                   component="span"
                   gradient={{ from: 'pink', to: 'blue' }}
                 >
-                  Birdy's Blog
+                  Birdy的博客
                 </Text>
               </Title>
             </Link>
@@ -203,34 +199,48 @@ export function HeaderComponent() {
             )}
             {!loading &&
               (user ? (
-                <Menu shadow="md" width={200} position="bottom-end">
-                  <Menu.Target>
-                    <Avatar
-                      src={`${BACKEND_URL}/user/avatar/${user.uid}`}
-                      radius="xl"
-                      size="md"
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </Menu.Target>
+                <>
+                  <Menu shadow="md" width={150} position="bottom-end">
+                    <Menu.Target>
+                      <Button variant="subtle" leftSection={<IconPlus size={16} />} size="sm">
+                        发布
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item onClick={() => router.push('/blog/new')}>新帖子</Menu.Item>
+                      <Menu.Item onClick={() => router.push('/modpack/new')}>新资源</Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
 
-                  <Menu.Dropdown>
-                    <Menu.Item
-                      leftSection={<IconUserCircle size={14} />}
-                      onClick={() => router.push(`/profile/${user.uid}`)}
-                    >
-                      主页
-                    </Menu.Item>
-                    <Menu.Item leftSection={<IconSettings size={14} />}>设置</Menu.Item>
-                    <Menu.Divider />
-                    <Menu.Item
-                      color="red"
-                      leftSection={<IconLogout size={14} />}
-                      onClick={handleLogout}
-                    >
-                      退出
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
+                  <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu.Target>
+                      <Avatar
+                        src={`${BACKEND_URL}/user/avatar/${user.uid}`}
+                        radius="xl"
+                        size="md"
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<IconUserCircle size={14} />}
+                        onClick={() => router.push(`/profile/${user.uid}`)}
+                      >
+                        主页
+                      </Menu.Item>
+                      <Menu.Item leftSection={<IconSettings size={14} />}>设置</Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item
+                        color="red"
+                        leftSection={<IconLogout size={14} />}
+                        onClick={handleLogout}
+                      >
+                        退出
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </>
               ) : (
                 <Button
                   variant="gradient"
@@ -245,7 +255,7 @@ export function HeaderComponent() {
         </Group>
       </AppShell.Header>
 
-      {/* 移动端导航抽屉 */}
+      {/* 移动端导航抽屉也需要添加发表选项 */}
       <Drawer
         opened={opened}
         onClose={close}
@@ -276,6 +286,30 @@ export function HeaderComponent() {
           )}
           <Stack w="100%">
             <NavLinks />
+            {user && (
+              <>
+                <Divider />
+                <Text fw={500}>发表内容</Text>
+                <Button
+                  variant="light"
+                  onClick={() => {
+                    router.push('/blog/new');
+                    close();
+                  }}
+                >
+                  新帖子
+                </Button>
+                <Button
+                  variant="light"
+                  onClick={() => {
+                    router.push('/modpack/new');
+                    close();
+                  }}
+                >
+                  新资源
+                </Button>
+              </>
+            )}
           </Stack>
         </Group>
       </Drawer>

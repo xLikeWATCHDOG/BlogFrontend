@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Button, Container, Loader, PasswordInput, Stack, Text, Title } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
 
 export default function ResetPassword() {
@@ -47,6 +47,7 @@ export default function ResetPassword() {
               router.push('/');
             }, 2000);
           }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           notifications.show({
             title: '验证失败',
@@ -62,7 +63,8 @@ export default function ResetPassword() {
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const captcha = new TencentCaptcha('190249560', async (res) => {
         if (res.ret === 0) {
           try {
@@ -70,8 +72,8 @@ export default function ResetPassword() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'captcha': JSON.stringify(res),
-                'forgetToken': token as string,
+                captcha: JSON.stringify(res),
+                forgetToken: token as string,
               },
               body: JSON.stringify({
                 password: values.password,
@@ -96,6 +98,7 @@ export default function ResetPassword() {
                 color: 'red',
               });
             }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             notifications.show({
               title: '请求失败',
@@ -112,6 +115,7 @@ export default function ResetPassword() {
         }
       });
       captcha.show();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       notifications.show({
         title: '系统错误',

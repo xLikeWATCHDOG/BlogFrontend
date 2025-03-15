@@ -1,11 +1,12 @@
-import {useEffect} from 'react';
-import {useMantineColorScheme} from '@mantine/core';
+import React, { useEffect } from 'react';
+import { useMantineColorScheme } from '@mantine/core';
+
 
 export default function AutoTheme() {
-    const {setColorScheme} = useMantineColorScheme();
+  const { setColorScheme } = useMantineColorScheme();
 
-    useEffect(() => {
-        setColorScheme('auto');
-    }, []);
-    return <></>;
+  useEffect(() => {
+    setColorScheme('auto');
+  }, []);
+  return <></>;
 }

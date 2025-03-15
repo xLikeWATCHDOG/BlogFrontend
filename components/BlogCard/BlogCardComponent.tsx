@@ -1,3 +1,4 @@
+import React from 'react';
 import { Badge, Card, Group, Image, Stack, Text, Title } from '@mantine/core';
 
 

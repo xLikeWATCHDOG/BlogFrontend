@@ -1,20 +1,11 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { IconBrandGithub, IconBrandGoogle, IconBrandQq } from '@tabler/icons-react';
 import useSWRMutation from 'swr/mutation';
-import {
-  Button,
-  Divider,
-  Group,
-  Modal,
-  Paper,
-  PasswordInput,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+import { Button, Divider, Group, Modal, Paper, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
+
 
 interface UserLoginModalProps {
   opened: boolean;
@@ -22,24 +13,24 @@ interface UserLoginModalProps {
 }
 
 // Add these API fetcher functions
-const sendMailFetcher = async (_url: string, { arg }: { arg: { email: string; captcha: any } }) => {
+const sendMailFetcher = async (_url: string, { arg }: { arg: { email: string; captcha: unknown } }) => {
   const response = await fetch(`${BACKEND_URL}/user/mail`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'captcha': JSON.stringify(arg.captcha),
+      captcha: JSON.stringify(arg.captcha),
     },
     body: JSON.stringify({ email: arg.email }),
   });
   return response.json();
 };
 
-async function sendPhoneFetcher(url: string, { arg }: { arg: { phone: string; captcha: any } }) {
+async function sendPhoneFetcher(url: string, { arg }: { arg: { phone: string; captcha: unknown } }) {
   const response = await fetch(`${BACKEND_URL}/user/phone/code`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'captcha': JSON.stringify(arg.captcha),
+      captcha: JSON.stringify(arg.captcha),
     },
     body: JSON.stringify({ phone: arg.phone }),
   });
@@ -50,6 +41,32 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'phone'>('login');
   const [emailCountdown, setEmailCountdown] = useState(0);
   const [phoneCountdown, setPhoneCountdown] = useState(0);
+  const [oauthProviders, setOauthProviders] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchOauthProviders = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/oauth/list`);
+        const data = await response.json();
+        if (data.code === 20000 && Array.isArray(data.data)) {
+          setOauthProviders(data.data);
+        } else {
+          console.error('Invalid OAuth providers data:', data);
+          setOauthProviders([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch OAuth providers:', error);
+        setOauthProviders([]);
+        notifications.show({
+          title: '请求失败',
+          message: '网络错误，请稍后重试',
+          color: 'red',
+        });
+      }
+    };
+
+    fetchOauthProviders();
+  }, []);
 
   const { trigger: sendMailTrigger } = useSWRMutation('/api/sendMail', sendMailFetcher);
   const { trigger: sendPhoneTrigger } = useSWRMutation('/api/sendPhone', sendPhoneFetcher);
@@ -70,7 +87,8 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
 
   const handleSendMail = async () => {
     try {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const captcha = new TencentCaptcha('190249560', async (res) => {
         if (res.ret === 0) {
           try {
@@ -91,6 +109,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                 color: 'red',
               });
             }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             notifications.show({
               title: '发送失败',
@@ -107,6 +126,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
         }
       });
       captcha.show();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       notifications.show({
         title: '系统错误',
@@ -118,7 +138,8 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
 
   const handleSendPhone = async () => {
     try {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const captcha = new TencentCaptcha('190249560', async (res) => {
         if (res.ret === 0) {
           try {
@@ -139,6 +160,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                 color: 'red',
               });
             }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             notifications.show({
               title: '发送失败',
@@ -155,6 +177,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
         }
       });
       captcha.show();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       notifications.show({
         title: '系统错误',
@@ -173,7 +196,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
   };
 
   // 添加一个通用的验证码处理函数
-  const handleFormSubmitWithCaptcha = async (values: any, action: string) => {
+  const handleFormSubmitWithCaptcha = async (values: unknown, action: string) => {
     notifications.clean(); // 先清理之前的通知
 
     notifications.show({
@@ -186,7 +209,8 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
     });
 
     try {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const captcha = new TencentCaptcha('190249560', async (res) => {
         if (res.ret === 0) {
           try {
@@ -230,7 +254,8 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                 autoClose: 3000,
               });
             }
-          } catch (error: any) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (error: unknown) {
             notifications.clean();
             notifications.show({
               title: '请求失败',
@@ -251,6 +276,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
       });
 
       captcha.show();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       notifications.clean();
       notifications.show({
@@ -295,7 +321,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
     validate: {
       username: (value) => (value.length < 2 ? '用户名至少需要2个字符' : null),
       email: (value) => (/^\S+@\S+$/.test(value) ? null : '请输入有效的邮箱地址'),
-      code: (value) => (/^\d{6}$/.test(value) ? null : '验证码必须是6位数字'),  // 已修改为 code
+      code: (value) => (/^\d{6}$/.test(value) ? null : '验证码必须是6位数字'), // 已修改为 code
       password: (value) => (value.length < 6 ? '密码至少需要6个字符' : null),
       confirmPassword: (value, values) =>
         value !== values.password ? '两次输入的密码不一致' : null,
@@ -430,9 +456,10 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
         return (
           <form
             onSubmit={(e) => {
-              e.preventDefault();  // 阻止表单默认提交行为
+              e.preventDefault(); // 阻止表单默认提交行为
               try {
-                // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
                 const captcha = new TencentCaptcha('190249560', async (res) => {
                   if (res.ret === 0) {
                     try {
@@ -440,7 +467,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
-                          'captcha': JSON.stringify(res),
+                          captcha: JSON.stringify(res),
                         },
                         body: JSON.stringify({ email: emailForm.values.email }),
                       });
@@ -461,6 +488,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                           color: 'red',
                         });
                       }
+                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     } catch (error) {
                       notifications.show({
                         title: '发送失败',
@@ -471,6 +499,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
                   }
                 });
                 captcha.show();
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
               } catch (error) {
                 notifications.show({
                   title: '系统错误',
@@ -591,17 +620,46 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
             <Divider label="或者使用以下方式登录" labelPosition="center" my="lg" />
 
             <Group grow mb="md" mt="md">
-              <Button leftSection={<IconBrandGithub size={20} />} variant="default" radius="xl">
-                Github
-              </Button>
-              <Button leftSection={<IconBrandGoogle size={20} />} variant="default" radius="xl">
-                Google
-              </Button>
-            </Group>
-            <Group grow mb="md">
-              <Button leftSection={<IconBrandQq size={20} />} variant="default" radius="xl">
-                QQ
-              </Button>
+              {Array.isArray(oauthProviders) && oauthProviders.length > 0 ? (
+                oauthProviders.map((provider) => (
+                  <Button
+                    key={provider}
+                    leftSection={
+                      provider === 'github' ? (
+                        <IconBrandGithub size={20} />
+                      ) : provider === 'google' ? (
+                        <IconBrandGoogle size={20} />
+                      ) : provider === 'qq' ? (
+                        <IconBrandQq size={20} />
+                      ) : null
+                    }
+                    variant="default"
+                    radius="xl"
+                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/${provider}`)}
+                  >
+                    {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                  </Button>
+                ))
+              ) : (
+                <>
+                  <Button
+                    leftSection={<IconBrandGithub size={20} />}
+                    variant="default"
+                    radius="xl"
+                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/github`)}
+                  >
+                    Github
+                  </Button>
+                  <Button
+                    leftSection={<IconBrandQq size={20} />}
+                    variant="default"
+                    radius="xl"
+                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/qq`)}
+                  >
+                    QQ
+                  </Button>
+                </>
+              )}
             </Group>
           </>
         )}

@@ -1,9 +1,10 @@
-import {useEffect} from 'react';
+import React, { useEffect } from 'react';
+
 
 export default function SearchIndex() {
-    useEffect(() => {
-        window.location.href = '/';
-    }, []);
+  useEffect(() => {
+    window.location.href = '/';
+  }, []);
 
-    return <></>;
+  return <></>;
 }
