@@ -1,7 +1,6 @@
-import React from 'react'
+import React from 'react';
 import { Head, Html, Main, NextScript } from 'next/document';
 import { ColorSchemeScript, mantineHtmlProps } from '@mantine/core';
-
 
 export default function Document() {
   return (

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Container, Paper, Stack, Text, Title } from '@mantine/core';
 
-
 export default function SearchResultPage() {
   const router = useRouter();
   const { text } = router.query;

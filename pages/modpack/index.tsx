@@ -1,9 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { IconDownload, IconServer, IconUser } from '@tabler/icons-react';
-import { Button, Center, Container, Group, Image, LoadingOverlay, Pagination, Paper, Stack, Text, Title } from '@mantine/core';
+import {
+  Button,
+  Center,
+  Container,
+  Group,
+  Image,
+  LoadingOverlay,
+  Pagination,
+  Paper,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { DownloadModal } from '@/components/DownloadModal/DownloadModal';
-
 
 interface Content {
   name: string;

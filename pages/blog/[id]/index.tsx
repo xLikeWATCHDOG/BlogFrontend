@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { Button, Container, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 
-
 export default function BlogPost() {
   const router = useRouter();
   const { id } = router.query;

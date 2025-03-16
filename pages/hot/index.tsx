@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { Container, Stack, Title } from '@mantine/core';
 import { BlogCardComponent } from '@/components/BlogCard/BlogCardComponent';
 

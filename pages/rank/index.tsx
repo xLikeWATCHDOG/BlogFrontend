@@ -2,7 +2,6 @@ import React from 'react';
 import { Container, Stack, Title } from '@mantine/core';
 import { BlogCardComponent } from '@/components/BlogCard/BlogCardComponent';
 
-
 interface Article {
   id: string;
   title: string;

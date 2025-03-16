@@ -4,7 +4,6 @@ import { Container, Grid, Group, Paper, Stack, Tabs, Text, Title } from '@mantin
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
 
-
 export default function UserProfile() {
   const router = useRouter();
   const { uid } = router.query;
