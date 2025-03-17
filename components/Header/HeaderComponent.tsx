@@ -222,7 +222,12 @@ export function HeaderComponent() {
                       >
                         主页
                       </Menu.Item>
-                      <Menu.Item leftSection={<IconSettings size={14} />}>设置</Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconSettings size={14} />}
+                        onClick={() => router.push(`/settings`)}
+                      >
+                        设置
+                      </Menu.Item>
                       <Menu.Divider />
                       <Menu.Item
                         color="red"

@@ -19,10 +19,10 @@ interface ArticleComment {
 // 修改 CommentPage 接口以匹配后端返回的数据结构
 interface CommentPage {
   records: ArticleComment[];
-  current: number;     // 当前页号
-  pageSize: number;    // 页面大小
-  totalPage: number;   // 总页数
-  totalRow: number;    // 总记录数
+  current: number; // 当前页号
+  pageSize: number; // 页面大小
+  totalPage: number; // 总页数
+  totalRow: number; // 总记录数
 }
 
 interface ArticleVO {
@@ -177,10 +177,14 @@ export default function BlogPost() {
       if (data.code === 20000) {
         setNewComment('');
         // 更新路由，将页码设为1（最新评论页）
-        router.push({
-          pathname: `/blog/${id}`,
-          query: { page: 1 }
-        }, undefined, { shallow: true });
+        router.push(
+          {
+            pathname: `/blog/${id}`,
+            query: { page: 1 },
+          },
+          undefined,
+          { shallow: true }
+        );
         // 重新获取第一页评论
         fetchComments(id as string, 1);
         setCurrentPage(1);
@@ -195,11 +199,15 @@ export default function BlogPost() {
   // 处理页码变化
   const handlePageChange = (page: number) => {
     // 更新路由中的页码
-    router.push({
-      pathname: `/blog/${id}`,
-      query: { page }
-    }, undefined, { shallow: true });
-    
+    router.push(
+      {
+        pathname: `/blog/${id}`,
+        query: { page },
+      },
+      undefined,
+      { shallow: true }
+    );
+
     setCurrentPage(page);
     fetchComments(id as string, page);
   };
@@ -360,7 +368,11 @@ export default function BlogPost() {
                 {comments.map((comment) => (
                   <Card key={comment.id} withBorder shadow="sm" radius="md" p="md">
                     <Group gap="sm" mb="xs">
-                      <Avatar src={comment.avatar} radius="xl" color="blue">
+                      <Avatar
+                        src={`${BACKEND_URL}/photo/${comment.avatar}`}
+                        radius="xl"
+                        color="blue"
+                      >
                         {comment.username ? comment.username.charAt(0).toUpperCase() : 'U'}
                       </Avatar>
                       <Box>
@@ -371,6 +383,11 @@ export default function BlogPost() {
                       </Box>
                     </Group>
                     <Text pl={40}>{comment.content}</Text>
+                    <Group justify="flex-end" mt="xs">
+                      <Text size="xs" c="dimmed">
+                        #{comment.id}
+                      </Text>
+                    </Group>
                   </Card>
                 ))}
               </Stack>
