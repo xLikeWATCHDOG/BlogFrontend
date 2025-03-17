@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import useSWRMutation from 'swr/mutation';
-import { Box, Button, Container, FileInput, Image, MultiSelect, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
+import { Box, Button, Container, FileButton, Group, Image, MultiSelect, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
@@ -163,14 +163,28 @@ export default function NewBlogPost() {
                 placeholder="输入帖子简介"
                 {...form.getInputProps('summary')}
               />
-              <FileInput
-                required
-                label="图片"
-                placeholder="上传图片"
-                accept="image/*"
-                onChange={(file) => form.setFieldValue('image', file)}
-                value={form.values.image}
-              />
+              <Box>
+                <Text fw={500} size="sm" mb={5}>
+                  图片{' '}
+                  <Text component="span" c="red">
+                    *
+                  </Text>
+                </Text>
+                <Group>
+                  <FileButton
+                    onChange={(file) => form.setFieldValue('image', file)}
+                    accept="image/png,image/jpeg,image/jpg"
+                  >
+                    {(props) => <Button {...props}>上传图片</Button>}
+                  </FileButton>
+                  {form.values.image && <Text size="sm">已选择: {form.values.image.name}</Text>}
+                </Group>
+                {form.errors.image && (
+                  <Text c="red" size="xs" mt={5}>
+                    {form.errors.image}
+                  </Text>
+                )}
+              </Box>
               {form.values.image && URL.createObjectURL(form.values.image) && (
                 <Box>
                   <Text fw={500} size="sm" mb={5}>

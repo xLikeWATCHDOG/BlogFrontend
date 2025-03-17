@@ -125,13 +125,6 @@ export function HeaderComponent() {
           </Text>
         </Button>
       </Link>
-      <Link href="/hot" style={{ textDecoration: 'none' }}>
-        <Button variant="transparent" size="lg">
-          <Text variant="gradient" gradient={{ from: 'orange', to: 'red' }} size="lg" fw={500}>
-            热门
-          </Text>
-        </Button>
-      </Link>
       <Link href="/rank" style={{ textDecoration: 'none' }}>
         <Button variant="transparent" size="lg">
           <Text variant="gradient" gradient={{ from: 'indigo', to: 'grape' }} size="lg" fw={500}>

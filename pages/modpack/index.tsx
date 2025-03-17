@@ -116,17 +116,18 @@ export default function ModPackPage() {
         <Stack gap="md">
           {packs.map((pack) => (
             <Paper key={pack.name} shadow="sm" p="md" withBorder radius="lg">
-              <Group wrap="nowrap" gap="xl">
+              <Group wrap="wrap" gap="xl" align="flex-start">
                 <Image
                   src={`https://data.elfidc.com/p/Minecraft/整合包/${pack.name}/${pack.name}-logo.png`}
                   h={120}
                   w={120}
                   radius="md"
+                  style={{ minWidth: 120 }}
                 />
 
-                <Stack style={{ flex: 1 }} gap="xs">
-                  <Group justify="space-between" align="center">
-                    <Title order={3}>{pack.name}</Title>
+                <Stack style={{ flex: 1, minWidth: '250px' }} gap="xs">
+                  <Group justify="space-between" align="center" wrap="wrap">
+                    <Title order={3} style={{ wordBreak: 'break-word' }}>{pack.name}</Title>
                   </Group>
 
                   {pack.brief && (
@@ -144,11 +145,12 @@ export default function ModPackPage() {
                     </Text>
                   </Stack>
 
-                  <Group justify="flex-end" align="center" gap="sm">
+                  <Group justify="flex-end" align="center" gap="sm" wrap="wrap">
                     <Button
                       variant="light"
                       leftSection={<IconServer size={16} />}
                       onClick={() => window.open('https://www.elfidc.com/minecraft.html')}
+                      size="sm"
                     >
                       一键联机
                     </Button>
@@ -163,6 +165,7 @@ export default function ModPackPage() {
                           .catch(() => '暂无作者连接');
                         window.open(content.toString());
                       }}
+                      size="sm"
                     >
                       作者
                     </Button>
@@ -170,6 +173,7 @@ export default function ModPackPage() {
                       variant="light"
                       leftSection={<IconDownload size={16} />}
                       onClick={() => setDownloadPack(pack.name)}
+                      size="sm"
                     >
                       下载
                     </Button>
