@@ -1,22 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import useSWRMutation from 'swr/mutation';
-import {
-  Box,
-  Button,
-  Container,
-  FileInput,
-  Image,
-  MultiSelect,
-  Stack,
-  Tabs,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Box, Button, Container, FileInput, Image, MultiSelect, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
+
 
 interface FormValues {
   title: string;
@@ -27,8 +18,6 @@ interface FormValues {
 }
 
 export default function NewBlogPost() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const form = useForm<FormValues>({
     initialValues: {
       title: '',
@@ -147,64 +136,6 @@ export default function NewBlogPost() {
     }
   };
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const cookies = document.cookie.split(';');
-        const loginToken = cookies
-          .find((cookie) => cookie.trim().startsWith('loginToken='))
-          ?.split('=')[1];
-
-        if (loginToken) {
-          const tokenResponse = await fetch(`${BACKEND_URL}/user/token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              loginToken,
-            },
-          });
-
-          const tokenData = await tokenResponse.json();
-
-          if (tokenData.code === 20000 && tokenData.data) {
-            const date = new Date();
-            date.setDate(date.getDate() + 7);
-            document.cookie = `loginToken=${tokenData.data.token}; expires=${date.toUTCString()}; path=/; SameSite=Strict`;
-            localStorage.setItem('loginToken', tokenData.data.token);
-
-            setUser(tokenData.data);
-            notifications.show({
-              title: '欢迎回来',
-              message: `${tokenData.data.username}`,
-              color: 'teal',
-              autoClose: 2000,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('获取用户信息失败:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkLoginStatus();
-  }, []);
-
-  useEffect(() => {
-    if (!user && !loading) {
-      // 不再显示登录模态框，直接跳转到首页
-      router.push('/').then(() => {
-        notifications.show({
-          title: '请先登录',
-          message: '发布文章需要登录账号',
-          color: 'yellow',
-        });
-      });
-    }
-  }, [user, loading]);
-
   // 移除 handleModalClose 函数，因为不再需要
   const router = useRouter();
 
@@ -280,7 +211,21 @@ export default function NewBlogPost() {
                     <div
                       data-color-mode="light"
                       style={{ backgroundColor: 'var(--mantine-color-body)' }}
-                    ></div>
+                    >
+                      <textarea
+                        placeholder="输入Markdown内容"
+                        value={form.values.content}
+                        onChange={(event) => form.setFieldValue('content', event.target.value)}
+                        style={{
+                          width: '100%',
+                          minHeight: '400px',
+                          padding: '10px',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                        }}
+                      />
+                    </div>
                   </Tabs.Panel>
 
                   <Tabs.Panel value="preview">
@@ -288,7 +233,16 @@ export default function NewBlogPost() {
                       data-color-mode="light"
                       style={{ backgroundColor: 'var(--mantine-color-body)' }}
                     >
-                      <Box p="md" style={{ minHeight: '400px' }}></Box>
+                      <Box
+                        p="md"
+                        style={{
+                          minHeight: '400px',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        <Markdown remarkPlugins={[remarkGfm]}>{form.values.content}</Markdown>
+                      </Box>
                     </div>
                   </Tabs.Panel>
                 </Tabs>
