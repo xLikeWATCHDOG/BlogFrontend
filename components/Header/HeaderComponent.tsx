@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
+import { IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle, IconDashboard } from '@tabler/icons-react';
 import { AppShell, Autocomplete, Avatar, Burger, Button, Divider, Drawer, Group, Menu, Stack, Text, Title } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -11,6 +11,15 @@ import { BACKEND_URL } from '@/data/global';
 
 interface UserVO {
   uid: number;
+  username: string;
+  email: string;
+  phone: string;
+  gender: number;
+  avatar: string;
+  status: number;
+  token: string;
+  createTime: Date;
+  updateTime: Date;
   group: Permission;
 }
 
@@ -21,6 +30,12 @@ interface Permission {
   expiry: number;
   createTime: string;
   updateTime: string;
+}
+
+export interface BaseResponse<T> {
+    code: number;
+    message: string;
+    data: T;
 }
 
 export function HeaderComponent() {
@@ -244,6 +259,15 @@ export function HeaderComponent() {
                       >
                         我的资源
                       </Menu.Item>
+                      <Menu.Divider />
+                      {(user.group?.permission === '*' || user.group?.permission === 'group.admin') && (
+                        <Menu.Item
+                          leftSection={<IconDashboard size={14} />}
+                          onClick={() => router.push('/admin')}
+                        >
+                          管理面板
+                        </Menu.Item>
+                      )}
                       <Menu.Divider />
                       <Menu.Item
                         color="red"

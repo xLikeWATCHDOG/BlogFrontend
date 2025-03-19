@@ -1,26 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { IconCheck, IconX } from '@tabler/icons-react';
-import {
-  Avatar,
-  Button,
-  Container,
-  Divider,
-  FileButton,
-  Group,
-  LoadingOverlay,
-  Paper,
-  PasswordInput,
-  Select,
-  Stack,
-  Tabs,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Avatar, Button, Container, Divider, FileButton, Group, LoadingOverlay, Paper, PasswordInput, Select, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
+
 
 // 用户数据接口
 interface UserData {
@@ -50,7 +35,7 @@ export default function SettingsPage() {
     const token = localStorage.getItem('loginToken');
     setLoginToken(token);
   }, []);
-  
+
   // 基本信息表单
   const profileForm = useForm({
     initialValues: {
@@ -93,17 +78,22 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!loginToken) return;
-      
+
       try {
         setLoading(true);
-        const response = await fetch(`${BACKEND_URL}/user/getlogin`, {
+        const response = await fetch(`${BACKEND_URL}/user/token`, {
+          method: 'POST',
           headers: {
             loginToken: loginToken,
           },
         });
 
         if (!response.ok) {
-          throw new Error('未授权访问');
+          notifications.show({
+            title: '获取用户信息失败',
+            message: '未授权访问',
+            color: 'red',
+          });
         }
 
         const data = await response.json();

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconCalendar, IconEye, IconMessage, IconUser } from '@tabler/icons-react';
+import { IconCalendar, IconEye, IconMessage, IconUser, IconFlag } from '@tabler/icons-react';
 import Markdown from 'react-markdown';
-import { Avatar, Badge, Box, Button, Card, Container, Divider, Group, Image, Pagination, Paper, Skeleton, Stack, Text, Textarea, Title } from '@mantine/core';
+import { Avatar, Badge, Box, Button, Card, Container, Divider, Group, Image, Pagination, Paper, Skeleton, Stack, Text, Textarea, Title, Modal, Select, ActionIcon } from '@mantine/core';
 import { BACKEND_URL } from '@/data/global';
+import { useDisclosure } from '@mantine/hooks';
+import { notifications } from '@mantine/notifications';
 
 
 // 添加评论相关接口
@@ -51,6 +53,13 @@ export default function BlogPost() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [user, setUser] = useState<any>(null);
+
+  // 举报相关状态
+  const [reportOpened, { open: openReport, close: closeReport }] = useDisclosure(false);
+  const [reportType, setReportType] = useState<'comment' | 'article'>('article');
+  const [reportItemId, setReportItemId] = useState<number>(0);
+  const [reportReason, setReportReason] = useState<string>('spam');
+  const [reportDetail, setReportDetail] = useState<string>('');
 
   useEffect(() => {
     if (id) {
@@ -212,6 +221,56 @@ export default function BlogPost() {
     fetchComments(id as string, page);
   };
 
+  // 处理举报提交
+  const handleReport = async () => {
+    if (!user) {
+      notifications.show({
+        title: '请先登录',
+        message: '您需要登录后才能举报内容',
+        color: 'red',
+      });
+      return;
+    }
+
+    try {
+      const loginToken = localStorage.getItem('loginToken');
+      const response = await fetch(`${BACKEND_URL}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          loginToken: loginToken || '',
+        },
+        body: JSON.stringify({
+          type: reportType === 'comment' ? 0 : 1, // 评论举报编号0，文章举报编号1
+          itemId: reportItemId,
+          reason: reportReason,
+          detail: reportDetail,
+          uid: user.uid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.code === 20000) {
+        notifications.show({
+          title: '举报成功',
+          message: '感谢您的反馈，我们会尽快处理',
+          color: 'green',
+        });
+        closeReport();
+        setReportDetail(''); // 清空详细说明
+      } else {
+        throw new Error(data.message || '举报失败');
+      }
+    } catch (err) {
+      notifications.show({
+        title: '举报失败',
+        message: err instanceof Error ? err.message : '未知错误',
+        color: 'red',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Box pb={80}>
@@ -274,23 +333,23 @@ export default function BlogPost() {
   return (
     <Box pb={80}>
       <Container size="lg" mt="xl">
-        <Title order={1} mb="md">
-          {article.title}
-        </Title>
-
-        <Group mb="lg">
-          <Group gap="xs">
-            <IconUser size={16} />
-            <Text size="sm">{article.author}</Text>
-          </Group>
-          <Group gap="xs">
-            <IconCalendar size={16} />
-            <Text size="sm">{new Date(article.createTime).toLocaleDateString('zh-CN')}</Text>
-          </Group>
-          <Group gap="xs">
-            <IconEye size={16} />
-            <Text size="sm">{article.views} 次浏览</Text>
-          </Group>
+        <Group gap="apart" mb="md">
+          <Title order={1}>{article.title}</Title>
+          {user && (
+            <ActionIcon 
+              color="red" 
+              variant="subtle" 
+              onClick={() => {
+                setReportType('article');
+                setReportItemId(Number(id));
+                setReportDetail('');
+                openReport();
+              }}
+              title="举报文章"
+            >
+              <IconFlag size={20} />
+            </ActionIcon>
+          )}
         </Group>
 
         <Group mb="lg">
@@ -367,20 +426,37 @@ export default function BlogPost() {
               <Stack gap="md">
                 {comments.map((comment) => (
                   <Card key={comment.id} withBorder shadow="sm" radius="md" p="md">
-                    <Group gap="sm" mb="xs">
-                      <Avatar
-                        src={`${BACKEND_URL}/photo/${comment.avatar}`}
-                        radius="xl"
-                        color="blue"
-                      >
-                        {comment.username ? comment.username.charAt(0).toUpperCase() : 'U'}
-                      </Avatar>
-                      <Box>
-                        <Text fw={500}>{comment.username || '匿名用户'}</Text>
-                        <Text size="xs" c="dimmed">
-                          {new Date(comment.createTime).toLocaleString('zh-CN')}
-                        </Text>
-                      </Box>
+                    <Group gap="apart" mb="xs">
+                      <Group gap="sm">
+                        <Avatar
+                          src={`${BACKEND_URL}/photo/${comment.avatar}`}
+                          radius="xl"
+                          color="blue"
+                        >
+                          {comment.username ? comment.username.charAt(0).toUpperCase() : 'U'}
+                        </Avatar>
+                        <Box>
+                          <Text fw={500}>{comment.username || '匿名用户'}</Text>
+                          <Text size="xs" c="dimmed">
+                            {new Date(comment.createTime).toLocaleString('zh-CN')}
+                          </Text>
+                        </Box>
+                      </Group>
+                      {user && (
+                        <ActionIcon 
+                          color="red" 
+                          variant="subtle" 
+                          onClick={() => {
+                            setReportType('comment');
+                            setReportItemId(comment.id);
+                            setReportDetail('');
+                            openReport();
+                          }}
+                          title="举报评论"
+                        >
+                          <IconFlag size={16} />
+                        </ActionIcon>
+                      )}
                     </Group>
                     <Text pl={40}>{comment.content}</Text>
                     <Group justify="flex-end" mt="xs">
@@ -415,6 +491,45 @@ export default function BlogPost() {
           )}
         </Box>
       </Container>
+
+      {/* 举报模态框 */}
+      <Modal opened={reportOpened} onClose={() => {
+        closeReport();
+        setReportDetail('');
+      }} title="举报内容" centered>
+        <Text mb="md">
+          您正在举报{reportType === 'article' ? '文章' : '评论'}，请选择举报原因：
+        </Text>
+        <Select
+          data={[
+            { value: 'spam', label: '垃圾信息' },
+            { value: 'inappropriate', label: '不适当内容' },
+            { value: 'illegal', label: '违法内容' },
+            { value: 'harassment', label: '骚扰' },
+            { value: 'pornographic', label: '色情内容' },
+            { value: 'violence', label: '暴力内容' },
+            { value: 'hate', label: '仇恨言论' },
+            { value: 'other', label: '其他原因' },
+          ]}
+          value={reportReason}
+          onChange={(value) => setReportReason(value || 'spam')}
+          mb="md"
+        />
+        <Textarea
+          placeholder="请输入详细举报原因（选填）"
+          value={reportDetail}
+          onChange={(event) => setReportDetail(event.currentTarget.value)}
+          minRows={3}
+          mb="md"
+        />
+        <Group justify="flex-end" mt="md">
+          <Button variant="outline" onClick={() => {
+            closeReport();
+            setReportDetail('');
+          }}>取消</Button>
+          <Button color="red" onClick={handleReport}>提交举报</Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }
