@@ -8,7 +8,6 @@ import { notifications } from '@mantine/notifications';
 import { UserLoginModal } from '@/components/User/UserLoginModal';
 import { BACKEND_URL } from '@/data/global';
 
-
 interface UserVO {
   uid: number;
   username: string;

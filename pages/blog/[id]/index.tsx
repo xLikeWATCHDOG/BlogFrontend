@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconCalendar, IconEye, IconMessage, IconUser, IconFlag } from '@tabler/icons-react';
+import { IconFlag, IconMessage } from '@tabler/icons-react';
 import Markdown from 'react-markdown';
-import { Avatar, Badge, Box, Button, Card, Container, Divider, Group, Image, Pagination, Paper, Skeleton, Stack, Text, Textarea, Title, Modal, Select, ActionIcon } from '@mantine/core';
-import { BACKEND_URL } from '@/data/global';
+import { ActionIcon, Avatar, Badge, Box, Button, Card, Container, Divider, Group, Image, Modal, Pagination, Paper, Select, Skeleton, Stack, Text, Textarea, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
+import { BACKEND_URL } from '@/data/global';
 
 
 // 添加评论相关接口
@@ -336,9 +336,9 @@ export default function BlogPost() {
         <Group gap="apart" mb="md">
           <Title order={1}>{article.title}</Title>
           {user && (
-            <ActionIcon 
-              color="red" 
-              variant="subtle" 
+            <ActionIcon
+              color="red"
+              variant="subtle"
               onClick={() => {
                 setReportType('article');
                 setReportItemId(Number(id));
@@ -443,9 +443,9 @@ export default function BlogPost() {
                         </Box>
                       </Group>
                       {user && (
-                        <ActionIcon 
-                          color="red" 
-                          variant="subtle" 
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
                           onClick={() => {
                             setReportType('comment');
                             setReportItemId(comment.id);
@@ -493,23 +493,28 @@ export default function BlogPost() {
       </Container>
 
       {/* 举报模态框 */}
-      <Modal opened={reportOpened} onClose={() => {
-        closeReport();
-        setReportDetail('');
-      }} title="举报内容" centered>
+      <Modal
+        opened={reportOpened}
+        onClose={() => {
+          closeReport();
+          setReportDetail('');
+        }}
+        title="举报内容"
+        centered
+      >
         <Text mb="md">
           您正在举报{reportType === 'article' ? '文章' : '评论'}，请选择举报原因：
         </Text>
         <Select
           data={[
-            { value: 'spam', label: '垃圾信息' },
-            { value: 'inappropriate', label: '不适当内容' },
-            { value: 'illegal', label: '违法内容' },
-            { value: 'harassment', label: '骚扰' },
-            { value: 'pornographic', label: '色情内容' },
-            { value: 'violence', label: '暴力内容' },
-            { value: 'hate', label: '仇恨言论' },
-            { value: 'other', label: '其他原因' },
+            { value: '垃圾信息', label: '垃圾信息' },
+            { value: '不适当内容', label: '不适当内容' },
+            { value: '违法内容', label: '违法内容' },
+            { value: '骚扰', label: '骚扰' },
+            { value: '色情内容', label: '色情内容' },
+            { value: '暴力内容', label: '暴力内容' },
+            { value: '仇恨言论', label: '仇恨言论' },
+            { value: '其他原因', label: '其他原因' },
           ]}
           value={reportReason}
           onChange={(value) => setReportReason(value || 'spam')}
@@ -523,11 +528,18 @@ export default function BlogPost() {
           mb="md"
         />
         <Group justify="flex-end" mt="md">
-          <Button variant="outline" onClick={() => {
-            closeReport();
-            setReportDetail('');
-          }}>取消</Button>
-          <Button color="red" onClick={handleReport}>提交举报</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              closeReport();
+              setReportDetail('');
+            }}
+          >
+            取消
+          </Button>
+          <Button color="red" onClick={handleReport}>
+            提交举报
+          </Button>
         </Group>
       </Modal>
     </Box>

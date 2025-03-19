@@ -1,37 +1,34 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { IconAlertCircle, IconArrowDownRight, IconArrowUpRight, IconArticle, IconChartBar, IconChevronRight, IconEye, IconMessage, IconPackage, IconUsers } from '@tabler/icons-react';
 import useSWR from 'swr';
-import {
-  ActionIcon,
-  Badge,
-  Box,
-  Card,
-  Container,
-  Flex,
-  Grid,
-  Group,
-  Loader,
-  Paper,
-  RingProgress,
-  SimpleGrid,
-  Stack,
-  Text,
-  Title,
-  rem,
-} from '@mantine/core';
-import {
-  IconArticle,
-  IconChevronRight,
-  IconMessage,
-  IconPackage,
-  IconUsers,
-  IconEye,
-  IconAlertCircle,
-  IconChartBar,
-  IconArrowUpRight,
-  IconArrowDownRight,
-} from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Card, Container, Flex, Grid, Group, Loader, Paper, rem, RingProgress, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
+
+
+interface UserVO {
+  uid: number;
+  username: string;
+  email: string;
+  phone: string;
+  gender: number;
+  avatar: string;
+  status: number;
+  token: string;
+  createTime: Date;
+  updateTime: Date;
+  group: Permission;
+}
+
+interface Permission {
+  id: number;
+  uid: number;
+  permission: string;
+  expiry: number;
+  createTime: string;
+  updateTime: string;
+}
 
 // 统计数据类型
 interface WeeklyStats {
@@ -78,20 +75,25 @@ interface StatsCardProps {
   value: number;
   icon: React.ReactNode;
   color: string;
-  path: string;
+  path?: string;
   increase?: number;
+  noclick?: boolean;
 }
 
-function StatsCard({ title, value, icon, color, path, increase }: StatsCardProps) {
+function StatsCard({ title, value, icon, color, path, increase, noclick }: StatsCardProps) {
   const router = useRouter();
-  
+
   return (
-    <Card 
-      withBorder 
-      p="md" 
-      radius="md" 
+    <Card
+      withBorder
+      p="md"
+      radius="md"
       shadow="sm"
-      onClick={() => router.push(path)}
+      onClick={() => {
+        if (path) {
+          router.push(path);
+        }
+      }}
       style={{ cursor: 'pointer' }}
     >
       <Group justify="space-between" align="flex-start">
@@ -115,21 +117,18 @@ function StatsCard({ title, value, icon, color, path, increase }: StatsCardProps
             </Group>
           )}
         </Box>
-        <ActionIcon 
-          variant="light" 
-          radius="md" 
-          size="xl"
-          color={color}
-        >
+        <ActionIcon variant="light" radius="md" size="xl" color={color}>
           {icon}
         </ActionIcon>
       </Group>
-      <Group mt="md" justify="flex-end">
-        <Text size="xs" c="dimmed">
-          点击查看详情
-        </Text>
-        <IconChevronRight style={{ width: rem(14), height: rem(14) }} />
-      </Group>
+      {!noclick && (
+        <Group mt="md" justify="flex-end">
+          <Text size="xs" c="dimmed">
+            点击查看详情
+          </Text>
+          <IconChevronRight style={{ width: rem(14), height: rem(14) }} />
+        </Group>
+      )}
     </Card>
   );
 }
@@ -140,18 +139,23 @@ interface AlertCardProps {
   value: number;
   description: string;
   color: string;
-  path: string;
+  path?: string;
+  noclick?: boolean;
 }
 
-function AlertCard({ title, value, description, color, path }: AlertCardProps) {
+function AlertCard({ title, value, description, color, path, noclick }: AlertCardProps) {
   const router = useRouter();
-  
+
   return (
-    <Paper 
-      withBorder 
-      p="md" 
+    <Paper
+      withBorder
+      p="md"
       radius="md"
-      onClick={() => router.push(path)}
+      onClick={() => {
+        if (path) {
+          router.push(path);
+        }
+      }}
       style={{ cursor: 'pointer' }}
     >
       <Group justify="space-between">
@@ -172,8 +176,82 @@ function AlertCard({ title, value, description, color, path }: AlertCardProps) {
 }
 
 export default function AdminDashboard() {
-  const { data, error, isLoading } = useSWR<{ code: number; message: string; data: StatsData }>(
-    `${BACKEND_URL}/admin/stats`,
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 检查用户是否登录以及是否有管理员权限
+  useEffect(() => {
+    const checkAdminPermission = async () => {
+      try {
+        const loginToken = localStorage.getItem('loginToken');
+
+        if (!loginToken) {
+          // 未登录，重定向到登录页
+          notifications.show({
+            title: '需要登录',
+            message: '请先登录后再访问管理页面',
+            color: 'red',
+          });
+          router.push('/login');
+          return;
+        }
+
+        // 获取用户信息
+        const response = await fetch(`${BACKEND_URL}/user/token`, {
+          method: 'POST',
+          headers: {
+            loginToken,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('获取用户信息失败');
+        }
+
+        const data = await response.json();
+
+        if (data.code !== 20000 || !data.data) {
+          throw new Error(data.message || '获取用户信息失败');
+        }
+
+        // 检查用户是否有管理员权限
+        const userInfo = data.data;
+        const hasAdminRole =
+          userInfo.group.permission === '*' || userInfo.group.permission?.includes('admin');
+
+        if (!hasAdminRole) {
+          notifications.show({
+            title: '权限不足',
+            message: '您没有管理员权限',
+            color: 'red',
+          });
+          router.push('/');
+          return;
+        }
+
+        setIsAdmin(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('权限检查失败:', error);
+        notifications.show({
+          title: '权限检查失败',
+          message: error instanceof Error ? error.message : '未知错误',
+          color: 'red',
+        });
+        router.push('/');
+      }
+    };
+
+    checkAdminPermission();
+  }, [router]);
+
+  const {
+    data,
+    error,
+    isLoading: statsLoading,
+  } = useSWR<{ code: number; message: string; data: StatsData }>(
+    isAdmin ? `${BACKEND_URL}/admin/stats` : null,
     fetcher
   );
 
@@ -189,11 +267,11 @@ export default function AdminDashboard() {
     newModpackCount: 0,
     pendingModpackCount: 0,
     reportedCommentCount: 0,
-    weeklyStats: []
+    weeklyStats: [],
   };
 
   // 加载中状态
-  if (isLoading) {
+  if (isLoading || statsLoading) {
     return (
       <Container size="lg" py="xl">
         <Flex justify="center" align="center" h={400}>
@@ -210,7 +288,9 @@ export default function AdminDashboard() {
         <Paper withBorder p="md" radius="md">
           <Group>
             <IconAlertCircle color="red" size={24} />
-            <Text fw={500} size="lg">获取数据失败</Text>
+            <Text fw={500} size="lg">
+              获取数据失败
+            </Text>
           </Group>
           <Text mt="sm">请检查网络连接或权限设置后重试</Text>
         </Paper>
@@ -218,10 +298,17 @@ export default function AdminDashboard() {
     );
   }
 
+  // 如果没有管理员权限，不渲染内容（实际上会被重定向）
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <Container size="lg" py="xl">
-      <Title order={2} mb="xl">管理员仪表盘</Title>
-      
+      <Title order={2} mb="xl">
+        管理员仪表盘
+      </Title>
+
       {/* 主要统计数据 */}
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} mb="xl">
         <StatsCard
@@ -257,12 +344,14 @@ export default function AdminDashboard() {
           value={statsData.viewCount}
           icon={<IconEye size={24} />}
           color="cyan"
-          path="/admin/analytics"
+          noclick={true}
         />
       </SimpleGrid>
 
       {/* 需要注意的事项 */}
-      <Title order={4} mb="md">需要注意</Title>
+      <Title order={4} mb="md">
+        需要注意
+      </Title>
       <SimpleGrid cols={{ base: 1, md: 2 }} mb="xl">
         <AlertCard
           title="待审核整合包"
@@ -284,24 +373,43 @@ export default function AdminDashboard() {
       <Grid mb={100}>
         <Grid.Col span={{ base: 12, md: 8 }}>
           <Paper withBorder p="md" radius="md" h="100%">
-            <Title order={4} mb="md">本周活跃度</Title>
-            <Box h={250} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Title order={4} mb="md">
+              本周活跃度
+            </Title>
+            <Box
+              h={250}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               <IconChartBar size={48} opacity={0.3} />
-              <Text ml="md" c="dimmed">图表数据加载中...</Text>
+              <Text ml="md" c="dimmed">
+                图表数据加载中...
+              </Text>
             </Box>
           </Paper>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Paper withBorder p="md" radius="md" h="100%">
-            <Title order={4} mb="md">内容分布</Title>
+            <Title order={4} mb="md">
+              内容分布
+            </Title>
             <Flex direction="column" align="center" justify="center">
               <RingProgress
                 size={180}
                 thickness={20}
                 roundCaps
                 sections={[
-                  { value: (statsData.articleCount / (statsData.articleCount + statsData.modpackCount)) * 100, color: 'violet' },
-                  { value: (statsData.modpackCount / (statsData.articleCount + statsData.modpackCount)) * 100, color: 'green' },
+                  {
+                    value:
+                      (statsData.articleCount / (statsData.articleCount + statsData.modpackCount)) *
+                      100,
+                    color: 'violet',
+                  },
+                  {
+                    value:
+                      (statsData.modpackCount / (statsData.articleCount + statsData.modpackCount)) *
+                      100,
+                    color: 'green',
+                  },
                 ]}
                 label={
                   <Text ta="center" size="sm" fw={700}>
