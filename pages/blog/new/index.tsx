@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import useSWRMutation from 'swr/mutation';
-import { Box, Button, Container, FileButton, Group, Image, MultiSelect, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
+import { Box, Button, Container, FileButton, Group, Image, MultiSelect, Paper, Stack, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
@@ -147,127 +147,134 @@ export default function NewBlogPost() {
           <Title order={2} ta="center" mb="xl">
             发布新帖子
           </Title>
-          <form onSubmit={form.onSubmit(handleSubmit)}>
-            <Stack gap="md">
-              {' '}
-              {/* 调整堆栈间距 */}
-              <TextInput
-                required
-                label="标题"
-                placeholder="输入帖子标题"
-                {...form.getInputProps('title')}
-              />
-              <TextInput
-                required
-                label="简介"
-                placeholder="输入帖子简介"
-                {...form.getInputProps('summary')}
-              />
-              <Box>
-                <Text fw={500} size="sm" mb={5}>
-                  图片{' '}
-                  <Text component="span" c="red">
-                    *
-                  </Text>
-                </Text>
-                <Group>
-                  <FileButton
-                    onChange={(file) => form.setFieldValue('image', file)}
-                    accept="image/png,image/jpeg,image/jpg"
-                  >
-                    {(props) => <Button {...props}>上传图片</Button>}
-                  </FileButton>
-                  {form.values.image && <Text size="sm">已选择: {form.values.image.name}</Text>}
-                </Group>
-                {form.errors.image && (
-                  <Text c="red" size="xs" mt={5}>
-                    {form.errors.image}
-                  </Text>
-                )}
-              </Box>
-              {form.values.image && URL.createObjectURL(form.values.image) && (
+          <Paper p="md" withBorder shadow="sm">
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+              <Stack gap="md">
+                {' '}
+                {/* 调整堆栈间距 */}
+                <TextInput
+                  required
+                  label="标题"
+                  placeholder="输入帖子标题"
+                  {...form.getInputProps('title')}
+                />
+                <TextInput
+                  required
+                  label="简介"
+                  placeholder="输入帖子简介"
+                  {...form.getInputProps('summary')}
+                />
                 <Box>
                   <Text fw={500} size="sm" mb={5}>
-                    预览:
+                    图片{' '}
+                    <Text component="span" c="red">
+                      *
+                    </Text>
                   </Text>
-                  <Image
-                    src={URL.createObjectURL(form.values.image)}
-                    alt="预览图"
-                    width={200}
-                    height={150}
-                    fit="cover"
-                    radius="md"
-                  />
+                  <Group
+                    justify="center"
+                    gap="xl"
+                    p="md"
+                    style={{ border: '1px dashed #ced4da', borderRadius: '4px' }}
+                  >
+                    <FileButton
+                      onChange={(file) => form.setFieldValue('image', file)}
+                      accept="image/png,image/jpeg,image/jpg"
+                    >
+                      {(props) => <Button {...props}>上传图片</Button>}
+                    </FileButton>
+                    {form.values.image && <Text size="sm">已选择: {form.values.image.name}</Text>}
+                  </Group>
+                  {form.errors.image && (
+                    <Text c="red" size="xs" mt={5}>
+                      {form.errors.image}
+                    </Text>
+                  )}
                 </Box>
-              )}
-              <MultiSelect
-                required
-                label="标签"
-                placeholder="选择标签"
-                data={tagOptions.map((tag) => ({ value: tag, label: tag }))}
-                searchable
-                {...form.getInputProps('tags')}
-              />
-              <Box>
-                <Text fw={500} size="md" mb={10}>
-                  内容{' '}
-                  <Text component="span" c="red">
-                    *
+                {form.values.image && URL.createObjectURL(form.values.image) && (
+                  <Box>
+                    <Text fw={500} size="sm" mb={5}>
+                      预览:
+                    </Text>
+                    <Image
+                      src={URL.createObjectURL(form.values.image)}
+                      alt="预览图"
+                      width={200}
+                      height={150}
+                      fit="cover"
+                      radius="md"
+                    />
+                  </Box>
+                )}
+                <MultiSelect
+                  required
+                  label="标签"
+                  placeholder="选择标签"
+                  data={tagOptions.map((tag) => ({ value: tag, label: tag }))}
+                  searchable
+                  {...form.getInputProps('tags')}
+                />
+                <Box>
+                  <Text fw={500} size="md" mb={10}>
+                    内容{' '}
+                    <Text component="span" c="red">
+                      *
+                    </Text>
                   </Text>
-                </Text>
-                <Tabs defaultValue="edit">
-                  <Tabs.List>
-                    <Tabs.Tab value="edit">编辑</Tabs.Tab>
-                    <Tabs.Tab value="preview">预览</Tabs.Tab>
-                  </Tabs.List>
+                  <Tabs defaultValue="edit">
+                    <Tabs.List>
+                      <Tabs.Tab value="edit">编辑</Tabs.Tab>
+                      <Tabs.Tab value="preview">预览</Tabs.Tab>
+                    </Tabs.List>
 
-                  <Tabs.Panel value="edit">
-                    <div
-                      data-color-mode="light"
-                      style={{ backgroundColor: 'var(--mantine-color-body)' }}
-                    >
-                      <textarea
-                        placeholder="输入Markdown内容"
-                        value={form.values.content}
-                        onChange={(event) => form.setFieldValue('content', event.target.value)}
-                        style={{
-                          width: '100%',
-                          minHeight: '400px',
-                          padding: '10px',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '4px',
-                          fontFamily: 'monospace',
-                        }}
-                      />
-                    </div>
-                  </Tabs.Panel>
-
-                  <Tabs.Panel value="preview">
-                    <div
-                      data-color-mode="light"
-                      style={{ backgroundColor: 'var(--mantine-color-body)' }}
-                    >
-                      <Box
-                        p="md"
-                        style={{
-                          minHeight: '400px',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '4px',
-                        }}
+                    <Tabs.Panel value="edit">
+                      <div
+                        data-color-mode="light"
+                        style={{ backgroundColor: 'var(--mantine-color-body)' }}
                       >
-                        <Markdown remarkPlugins={[remarkGfm]}>{form.values.content}</Markdown>
-                      </Box>
-                    </div>
-                  </Tabs.Panel>
-                </Tabs>
-              </Box>
-              <Stack align="center" mt="md" mb="xl">
-                <Button type="submit" size="md" loading={isMutating}>
-                  {isMutating ? '发布中...' : '发布'}
-                </Button>
+                        <textarea
+                          placeholder="输入Markdown内容"
+                          value={form.values.content}
+                          onChange={(event) => form.setFieldValue('content', event.target.value)}
+                          style={{
+                            width: '100%',
+                            minHeight: '400px',
+                            padding: '10px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '4px',
+                            fontFamily: 'monospace',
+                          }}
+                        />
+                      </div>
+                    </Tabs.Panel>
+
+                    <Tabs.Panel value="preview">
+                      <div
+                        data-color-mode="light"
+                        style={{ backgroundColor: 'var(--mantine-color-body)' }}
+                      >
+                        <Box
+                          p="md"
+                          style={{
+                            minHeight: '400px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <Markdown remarkPlugins={[remarkGfm]}>{form.values.content}</Markdown>
+                        </Box>
+                      </div>
+                    </Tabs.Panel>
+                  </Tabs>
+                </Box>
+                <Stack align="center" mt="md" mb="xl">
+                  <Button type="submit" size="md" loading={isMutating}>
+                    {isMutating ? '发布中...' : '发布'}
+                  </Button>
+                </Stack>
               </Stack>
-            </Stack>
-          </form>
+            </form>
+          </Paper>
         </Container>
       </Box>
     </>

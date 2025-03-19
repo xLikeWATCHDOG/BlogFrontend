@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconLogout, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
+import { IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
 import { AppShell, Autocomplete, Avatar, Burger, Button, Divider, Drawer, Group, Menu, Stack, Text, Title } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -11,6 +11,16 @@ import { BACKEND_URL } from '@/data/global';
 
 interface UserVO {
   uid: number;
+  group: Permission;
+}
+
+interface Permission {
+  id: number;
+  uid: number;
+  permission: string;
+  expiry: number;
+  createTime: string;
+  updateTime: string;
 }
 
 export function HeaderComponent() {
@@ -227,6 +237,12 @@ export function HeaderComponent() {
                         onClick={() => router.push(`/settings`)}
                       >
                         设置
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconPackage size={14} />}
+                        onClick={() => router.push(`/modpack/my`)}
+                      >
+                        我的资源
                       </Menu.Item>
                       <Menu.Divider />
                       <Menu.Item
