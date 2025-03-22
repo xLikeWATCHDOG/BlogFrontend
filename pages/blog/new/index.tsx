@@ -60,7 +60,7 @@ export default function NewBlogPost() {
 
   const { trigger: createPost, isMutating } = useSWRMutation(
     `${BACKEND_URL}/blog`,
-    async (url, { arg }: { arg: unknown }) => {
+    async (url: string | URL, { arg }: { arg: unknown }) => {
       const loginToken = localStorage.getItem('loginToken');
 
       // Check if image exists
