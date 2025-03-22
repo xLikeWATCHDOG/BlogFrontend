@@ -1,2 +1,1 @@
-export const dev = process.env.NODE_ENV !== 'production';
-export const BACKEND_URL = dev ? 'http://localhost:8102' : 'https://pack2.elfidc.com';
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8102';
