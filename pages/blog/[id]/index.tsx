@@ -58,7 +58,7 @@ export default function BlogPost() {
   const [reportOpened, { open: openReport, close: closeReport }] = useDisclosure(false);
   const [reportType, setReportType] = useState<'comment' | 'article'>('article');
   const [reportItemId, setReportItemId] = useState<number>(0);
-  const [reportReason, setReportReason] = useState<string>('spam');
+  const [reportReason, setReportReason] = useState<string>('垃圾信息');
   const [reportDetail, setReportDetail] = useState<string>('');
 
   useEffect(() => {
@@ -517,7 +517,7 @@ export default function BlogPost() {
             { value: '其他原因', label: '其他原因' },
           ]}
           value={reportReason}
-          onChange={(value) => setReportReason(value || 'spam')}
+          onChange={(value) => setReportReason(value || '垃圾信息')}
           mb="md"
         />
         <Textarea

@@ -410,7 +410,7 @@ export default function ReportList() {
                   color="blue"
                   onClick={() => {
                     close();
-                    router.push(`/user/${selectedReport.itemId}`);
+                    router.push(`/profile/${selectedReport.itemId}`);
                   }}
                 >
                   查看用户

@@ -102,7 +102,9 @@ export default function SettingsPage() {
           setUser(data.data);
           profileForm.setValues({
             username: data.data.username,
-            gender: data.data.gender.toString(),
+            gender: data.data.gender !== null && data.data.gender !== undefined 
+              ? data.data.gender.toString() 
+              : '3', // Default to '3' (private) if gender is null or undefined
           });
           emailForm.setValues({
             newEmail: data.data.email,

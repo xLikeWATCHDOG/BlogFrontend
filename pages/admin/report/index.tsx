@@ -1,25 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconAlertCircle, IconEye, IconExternalLink } from '@tabler/icons-react';
-import {
-  ActionIcon,
-  Badge,
-  Box,
-  Button,
-  Container,
-  Group,
-  Loader,
-  Modal,
-  Pagination,
-  Paper,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
+import { IconAlertCircle, IconChevronDown, IconEye } from '@tabler/icons-react';
+import { ActionIcon, Badge, Box, Button, Container, Group, Loader, Menu, Modal, Pagination, Paper, Stack, Table, Text, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
+
 
 // 举报类型定义
 interface Report {
@@ -46,7 +32,7 @@ interface PageData {
   totalRow: number;
 }
 
-export default function AdminReportList() {
+export default function ReportList() {
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [pageData, setPageData] = useState<PageData | null>(null);
@@ -90,7 +76,7 @@ export default function AdminReportList() {
         }
 
         setUser(data.data);
-        fetchReports(currentPage, pageSize, data.data.uid);
+        fetchReports(currentPage, pageSize);
       } catch (error) {
         console.error('登录检查失败:', error);
         notifications.show({
@@ -102,11 +88,11 @@ export default function AdminReportList() {
       }
     };
 
-    //checkLogin();
+    checkLogin();
   }, [router]);
 
   // 获取举报列表
-  const fetchReports = async (page: number, size: number, uid: number) => {
+  const fetchReports = async (page: number, size: number) => {
     setLoading(true);
     try {
       const loginToken = localStorage.getItem('loginToken');
@@ -121,6 +107,7 @@ export default function AdminReportList() {
           pageSize: size,
           sortField: 'createTime',
           sortOrder: 'desc',
+          // uid 参数已移除
         }),
       });
 
@@ -144,11 +131,56 @@ export default function AdminReportList() {
     }
   };
 
+  // 处理状态变更
+  const handleStatusChange = async (reportId: number, newStatus: number) => {
+    try {
+      const loginToken = localStorage.getItem('loginToken');
+      const response = await fetch(`${BACKEND_URL}/report/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          loginToken: loginToken || '',
+        },
+        body: JSON.stringify({
+          id: reportId,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('更新举报状态失败');
+      }
+
+      const data = await response.json();
+      if (data.code !== 20000) {
+        throw new Error(data.message || '更新举报状态失败');
+      }
+
+      notifications.show({
+        title: '成功',
+        message: '举报状态已更新',
+        color: 'green',
+      });
+
+      // 刷新举报列表
+      if (user) {
+        fetchReports(currentPage, pageSize);
+      }
+    } catch (err) {
+      console.error('更新举报状态失败:', err);
+      notifications.show({
+        title: '失败',
+        message: err instanceof Error ? err.message : '未知错误',
+        color: 'red',
+      });
+    }
+  };
+
   // 处理页码变化
   const handlePageChange = (page: number) => {
     if (user) {
       setCurrentPage(page);
-      fetchReports(page, pageSize, user.uid);
+      fetchReports(page, pageSize);
     }
   };
 
@@ -158,7 +190,7 @@ export default function AdminReportList() {
       const newSize = parseInt(value);
       setPageSize(newSize);
       setCurrentPage(1);
-      fetchReports(1, newSize, user.uid);
+      fetchReports(1, newSize);
     }
   };
 
@@ -257,7 +289,7 @@ export default function AdminReportList() {
   return (
     <Container size="lg" py="xl">
       <Title order={2} mb="xl">
-        我的举报记录
+        当前举报记录
       </Title>
 
       {reports.length === 0 ? (
@@ -301,13 +333,41 @@ export default function AdminReportList() {
                         >
                           <IconEye size={16} />
                         </ActionIcon>
-                        <ActionIcon
-                          color="green"
-                          onClick={() => window.open(`${BACKEND_URL}/report/redict?id=${report.id}`, '_blank')}
-                          title="跳转到原内容"
-                        >
-                          <IconExternalLink size={16} />
-                        </ActionIcon>
+                        <Menu shadow="md" width={200} position="bottom-end">
+                          <Menu.Target>
+                            <Button
+                              size="xs"
+                              rightSection={<IconChevronDown size={14} />}
+                              variant="subtle"
+                            >
+                              操作
+                            </Button>
+                          </Menu.Target>
+                          <Menu.Dropdown>
+                            <Menu.Label>修改状态</Menu.Label>
+                            <Menu.Item
+                              onClick={() => handleStatusChange(report.id, 1)}
+                              color="blue"
+                            >
+                              设为审核中
+                            </Menu.Item>
+                            <Menu.Item
+                              onClick={() => handleStatusChange(report.id, 2)}
+                              color="green"
+                            >
+                              设为审核通过
+                            </Menu.Item>
+                            <Menu.Item onClick={() => handleStatusChange(report.id, 3)} color="red">
+                              设为审核不通过
+                            </Menu.Item>
+                            <Menu.Item
+                              onClick={() => handleStatusChange(report.id, 4)}
+                              color="gray"
+                            >
+                              设为未知状态
+                            </Menu.Item>
+                          </Menu.Dropdown>
+                        </Menu>
                       </Group>
                     </Table.Td>
                   </Table.Tr>
@@ -403,7 +463,17 @@ export default function AdminReportList() {
 
             <Group justify="center" mt="xl">
               <Button onClick={close}>关闭</Button>
-              {selectedReport.type === 1 ? (
+              {selectedReport.type === 0 ? (
+                <Button
+                  color="blue"
+                  onClick={() => {
+                    close();
+                    router.push(`/comment/${selectedReport.itemId}`);
+                  }}
+                >
+                  查看评论
+                </Button>
+              ) : selectedReport.type === 1 ? (
                 <Button
                   color="blue"
                   onClick={() => {
@@ -418,7 +488,7 @@ export default function AdminReportList() {
                   color="blue"
                   onClick={() => {
                     close();
-                    router.push(`/user/${selectedReport.itemId}`);
+                    router.push(`/profile/${selectedReport.itemId}`);
                   }}
                 >
                   查看用户

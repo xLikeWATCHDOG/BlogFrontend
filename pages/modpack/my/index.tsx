@@ -74,10 +74,23 @@ interface ApiResponse {
 // 获取整合包列表的fetcher函数
 const fetcher = async (url: string) => {
   const loginToken = localStorage.getItem('loginToken');
-  const response = await fetch(url, {
+  
+  // 从URL中提取查询参数
+  const urlObj = new URL(url);
+  const current = urlObj.searchParams.get('current') || '1';
+  const pageSize = urlObj.searchParams.get('pageSize') || '10';
+  
+  // 使用POST请求并发送JSON数据
+  const response = await fetch(`${BACKEND_URL}/modpack/list`, {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       loginToken: loginToken || '',
     },
+    body: JSON.stringify({
+      current: parseInt(current),
+      pageSize: parseInt(pageSize)
+    }),
   });
 
   if (!response.ok) {
@@ -92,7 +105,7 @@ export default function MyModpacksPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // 获取整合包列表数据
+  // 获取整合包列表数据 - 修改URL格式以适应fetcher函数
   const { data, error, mutate } = useSWR<ApiResponse>(
     `${BACKEND_URL}/modpack/list?current=${page}&pageSize=${pageSize}`,
     fetcher

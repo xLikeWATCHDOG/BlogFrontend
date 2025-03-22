@@ -6,30 +6,6 @@ import { ActionIcon, Badge, Box, Card, Container, Flex, Grid, Group, Loader, Pap
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
 
-
-interface UserVO {
-  uid: number;
-  username: string;
-  email: string;
-  phone: string;
-  gender: number;
-  avatar: string;
-  status: number;
-  token: string;
-  createTime: Date;
-  updateTime: Date;
-  group: Permission;
-}
-
-interface Permission {
-  id: number;
-  uid: number;
-  permission: string;
-  expiry: number;
-  createTime: string;
-  updateTime: string;
-}
-
 // 统计数据类型
 interface WeeklyStats {
   date: string;
@@ -49,7 +25,7 @@ interface StatsData {
   newArticleCount: number;
   newModpackCount: number;
   pendingModpackCount: number;
-  reportedCommentCount: number;
+  reported: number;
   weeklyStats: WeeklyStats[];
 }
 
@@ -266,7 +242,7 @@ export default function AdminDashboard() {
     newArticleCount: 0,
     newModpackCount: 0,
     pendingModpackCount: 0,
-    reportedCommentCount: 0,
+    reported: 0,
     weeklyStats: [],
   };
 
@@ -323,21 +299,21 @@ export default function AdminDashboard() {
           value={statsData.articleCount}
           icon={<IconArticle size={24} />}
           color="violet"
-          path="/admin/article"
+          path="/"
         />
         <StatsCard
           title="整合包总数"
           value={statsData.modpackCount}
           icon={<IconPackage size={24} />}
           color="green"
-          path="/admin/modpack"
+          path="/modpack"
         />
         <StatsCard
           title="评论总数"
           value={statsData.commentCount}
           icon={<IconMessage size={24} />}
           color="orange"
-          path="/admin/comment"
+          noclick={true}
         />
         <StatsCard
           title="总浏览量"
@@ -358,14 +334,14 @@ export default function AdminDashboard() {
           value={statsData.pendingModpackCount}
           description="有整合包等待您的审核"
           color="yellow"
-          path="/admin/modpack?status=pending"
+          path="/admin/modpack"
         />
         <AlertCard
-          title="被举报的评论"
-          value={statsData.reportedCommentCount}
-          description="有评论被用户举报，需要审核"
+          title="被举报的内容"
+          value={statsData.reported}
+          description="有内容被用户举报，需要审核"
           color="red"
-          path="/admin/comment?status=reported"
+          path="/admin/report"
         />
       </SimpleGrid>
 
