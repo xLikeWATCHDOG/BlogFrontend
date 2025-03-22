@@ -158,7 +158,7 @@ export default function BlogPost() {
   const submitComment = async () => {
     if (!newComment.trim()) return;
     if (!user) {
-      router.push('/login');
+      router.push('/');
       return;
     }
 

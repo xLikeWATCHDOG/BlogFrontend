@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle, IconDashboard } from '@tabler/icons-react';
+import { IconDashboard, IconFlag, IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
 import { AppShell, Autocomplete, Avatar, Burger, Button, Divider, Drawer, Group, Menu, Stack, Text, Title } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { UserLoginModal } from '@/components/User/UserLoginModal';
 import { BACKEND_URL } from '@/data/global';
+
 
 interface UserVO {
   uid: number;
@@ -32,9 +33,9 @@ interface Permission {
 }
 
 export interface BaseResponse<T> {
-    code: number;
-    message: string;
-    data: T;
+  code: number;
+  message: string;
+  data: T;
 }
 
 export function HeaderComponent() {
@@ -258,14 +259,23 @@ export function HeaderComponent() {
                       >
                         我的资源
                       </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconFlag size={14} />}
+                        onClick={() => router.push('/report')}
+                      >
+                        举报列表
+                      </Menu.Item>
                       <Menu.Divider />
-                      {(user.group?.permission === '*' || user.group?.permission === 'group.admin') && (
-                        <Menu.Item
-                          leftSection={<IconDashboard size={14} />}
-                          onClick={() => router.push('/admin')}
-                        >
-                          管理面板
-                        </Menu.Item>
+                      {(user.group?.permission === '*' ||
+                        user.group?.permission === 'group.admin') && (
+                        <>
+                          <Menu.Item
+                            leftSection={<IconDashboard size={14} />}
+                            onClick={() => router.push('/admin')}
+                          >
+                            管理面板
+                          </Menu.Item>
+                        </>
                       )}
                       <Menu.Divider />
                       <Menu.Item
