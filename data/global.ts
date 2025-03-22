@@ -1,1 +1,2 @@
-export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8102';
+export const dev = process.env.NODE_ENV !== 'production';
+export const BACKEND_URL = dev ? 'http://localhost:8102' : 'http://ddns.ihuizhi.top:10021';
