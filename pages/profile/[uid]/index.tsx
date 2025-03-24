@@ -108,12 +108,6 @@ export default function UserProfile() {
           // 模拟统计数据，实际应从后端获取
           const userData = {
             ...data.data,
-            stats: {
-              articleCount: 12,
-              modpackCount: 5,
-              followersCount: 28,
-              followingCount: 15,
-            },
           };
           setUser(userData);
         } else {
