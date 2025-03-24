@@ -534,7 +534,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
         return (
           <form
             onSubmit={phoneForm.onSubmit((values) =>
-              handleFormSubmitWithCaptcha(values, 'phoneLogin')
+              handleFormSubmitWithCaptcha(values, 'phone')
             )}
           >
             <Stack>
