@@ -615,51 +615,30 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
 
         {renderForm()}
 
-        {mode === 'login' && (
+        {mode === 'login' && oauthProviders.length > 0 && (
           <>
             <Divider label="或者使用以下方式登录" labelPosition="center" my="lg" />
 
             <Group grow mb="md" mt="md">
-              {Array.isArray(oauthProviders) && oauthProviders.length > 0 ? (
-                oauthProviders.map((provider) => (
-                  <Button
-                    key={provider}
-                    leftSection={
-                      provider === 'github' ? (
-                        <IconBrandGithub size={20} />
-                      ) : provider === 'google' ? (
-                        <IconBrandGoogle size={20} />
-                      ) : provider === 'qq' ? (
-                        <IconBrandQq size={20} />
-                      ) : null
-                    }
-                    variant="default"
-                    radius="xl"
-                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/${provider}`)}
-                  >
-                    {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                  </Button>
-                ))
-              ) : (
-                <>
-                  <Button
-                    leftSection={<IconBrandGithub size={20} />}
-                    variant="default"
-                    radius="xl"
-                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/github`)}
-                  >
-                    Github
-                  </Button>
-                  <Button
-                    leftSection={<IconBrandQq size={20} />}
-                    variant="default"
-                    radius="xl"
-                    onClick={() => (window.location.href = `${BACKEND_URL}/oauth/qq`)}
-                  >
-                    QQ
-                  </Button>
-                </>
-              )}
+              {oauthProviders.map((provider) => (
+                <Button
+                  key={provider}
+                  leftSection={
+                    provider === 'github' ? (
+                      <IconBrandGithub size={20} />
+                    ) : provider === 'google' ? (
+                      <IconBrandGoogle size={20} />
+                    ) : provider === 'qq' ? (
+                      <IconBrandQq size={20} />
+                    ) : null
+                  }
+                  variant="default"
+                  radius="xl"
+                  onClick={() => (window.location.href = `${BACKEND_URL}/oauth/${provider}`)}
+                >
+                  {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                </Button>
+              ))}
             </Group>
           </>
         )}
