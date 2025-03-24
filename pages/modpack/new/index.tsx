@@ -30,6 +30,7 @@ export default function NewModpackPage() {
   // 表单定义
   const form = useForm({
     initialValues: {
+      name: '',
       launchArguments: '',
       brief: '',
       client: '',
@@ -37,6 +38,11 @@ export default function NewModpackPage() {
       logoFile: null as File | null,
     },
     validate: {
+      name: (value) => {
+        if (!value) return '整合包名称为必填项';
+        if (value.length < 2) return '整合包名称至少需要2个字符';
+        return null;
+      },
       launchArguments: (value) => (!value ? '启动参数为必填项' : null),
       brief: (value) => {
         if (!value) return '简介为必填项';
@@ -87,6 +93,7 @@ export default function NewModpackPage() {
             const formData = new FormData();
             formData.append('modpackFile', modpackFile);
             if (logoFile) formData.append('logoFile', logoFile);
+            formData.append('name', values.name);
             formData.append('launchArguments', values.launchArguments);
             formData.append('brief', values.brief);
             formData.append('client', values.client);
@@ -148,6 +155,14 @@ export default function NewModpackPage() {
 
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack gap="md">
+              {/* 整合包名称 */}
+              <TextInput
+                required
+                label="整合包名称"
+                placeholder="输入整合包名称"
+                {...form.getInputProps('name')}
+              />
+
               {/* 启动参数 */}
               <TextInput
                 required
@@ -155,7 +170,8 @@ export default function NewModpackPage() {
                 placeholder="输入整合包启动参数"
                 {...form.getInputProps('launchArguments')}
               />
-
+              
+              {/* 其余表单字段保持不变 */}
               {/* 整合包版本 */}
               <TextInput
                 required

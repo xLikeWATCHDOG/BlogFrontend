@@ -47,6 +47,7 @@ interface Modpack {
   id: number;
   uid: number;
   logoId: number;
+  name: string; // 添加整合包名称字段
   launchArguments: string;
   brief: string;
   client: string;
@@ -337,6 +338,46 @@ export default function ModpackAdminPage() {
     }
   };
 
+  // 添加移动整合包的处理函数
+  const handleMoveModpack = async (id: number) => {
+    try {
+      const loginToken = localStorage.getItem('loginToken');
+      const response = await fetch(`${BACKEND_URL}/modpack/move/${id}`, {
+        method: 'POST',
+        headers: {
+          loginToken: loginToken || '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('移动整合包失败');
+      }
+
+      const data = await response.json();
+      if (data.code !== 20000) {
+        throw new Error(data.message || '移动整合包失败');
+      }
+
+      notifications.show({
+        title: '成功',
+        message: '整合包已成功移动',
+        color: 'green',
+        icon: <IconCheck size={16} />,
+      });
+      
+      // 刷新列表
+      fetchModpacks(queryParams);
+    } catch (err) {
+      console.error('移动整合包失败:', err);
+      notifications.show({
+        title: '失败',
+        message: err instanceof Error ? err.message : '未知错误',
+        color: 'red',
+        icon: <IconX size={16} />,
+      });
+    }
+  };
+
   // 格式化文件大小
   const formatFileSize = (size: number) => {
     if (size < 1024) {
@@ -459,7 +500,7 @@ export default function ModpackAdminPage() {
                   <Table.Tr key={modpack.id}>
                     <Table.Td>{modpack.id}</Table.Td>
                     <Table.Td>{modpack.uid}</Table.Td>
-                    <Table.Td>{modpack.client}</Table.Td>
+                    <Table.Td>{modpack.name || modpack.client}</Table.Td>
                     <Table.Td>{modpack.version}</Table.Td>
                     <Table.Td>{formatFileSize(modpack.fileSize)}</Table.Td>
                     <Table.Td>
@@ -551,6 +592,10 @@ export default function ModpackAdminPage() {
             </Group>
             <Group mb="md">
               <Text fw={700}>整合包名称:</Text>
+              <Text>{selectedModpack.name || '未设置'}</Text>
+            </Group>
+            <Group mb="md">
+              <Text fw={700}>作者链接:</Text>
               <Text>{selectedModpack.client}</Text>
             </Group>
             <Group mb="md">
@@ -616,6 +661,15 @@ export default function ModpackAdminPage() {
                 }}
               >
                 下载整合包
+              </Button>
+              <Button
+                color="yellow"
+                onClick={() => {
+                  // 调用移动整合包函数
+                  handleMoveModpack(selectedModpack.id);
+                }}
+              >
+                移动整合包
               </Button>
               <Button
                 color="red"
