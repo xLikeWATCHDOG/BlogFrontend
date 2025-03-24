@@ -102,6 +102,7 @@ export default function ModpackAdminPage() {
   const [statusOpened, { open: openStatus, close: closeStatus }] = useDisclosure(false);
   const [newStatus, setNewStatus] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [deleteReason, setDeleteReason] = useState(''); // 添加删除原因状态
 
   // 查询参数
   const [queryParams, setQueryParams] = useState<QueryParams>({
@@ -255,8 +256,12 @@ export default function ModpackAdminPage() {
       const response = await fetch(`${BACKEND_URL}/modpack/${selectedModpack.id}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           loginToken: loginToken || '',
         },
+        body: JSON.stringify({
+          reason: deleteReason.trim() || '管理员未提供删除原因'
+        }),
       });
 
       if (!response.ok) {
@@ -686,12 +691,24 @@ export default function ModpackAdminPage() {
 
       {/* 删除确认对话框 */}
       <Modal opened={deleteOpened} onClose={closeDelete} title="确认删除" centered>
-        <Text mb="lg">您确定要删除这个整合包吗？此操作不可撤销。</Text>
+        <Text mb="md">您确定要删除这个整合包吗？此操作不可撤销。</Text>
+        <TextInput
+          label="删除原因"
+          placeholder="请输入删除原因"
+          value={deleteReason}
+          onChange={(e) => setDeleteReason(e.target.value)}
+          mb="lg"
+          required
+        />
         <Group justify="center">
           <Button variant="outline" onClick={closeDelete}>
             取消
           </Button>
-          <Button color="red" onClick={handleDelete}>
+          <Button 
+            color="red" 
+            onClick={handleDelete}
+            disabled={!deleteReason.trim()}
+          >
             确认删除
           </Button>
         </Group>
