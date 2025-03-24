@@ -12,11 +12,14 @@ import {
   Group,
   Image,
   Loader,
+  Modal,
   Pagination,
   Stack,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { BACKEND_URL } from '@/data/global';
 
@@ -104,6 +107,9 @@ export default function MyModpacksPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [selectedModpackId, setSelectedModpackId] = useState<number | null>(null);
 
   // 获取整合包列表数据 - 修改URL格式以适应fetcher函数
   const { data, error, mutate } = useSWR<ApiResponse>(
@@ -111,19 +117,28 @@ export default function MyModpacksPage() {
     fetcher
   );
 
+  // 打开删除确认对话框
+  const openDeleteConfirmation = (id: number) => {
+    setSelectedModpackId(id);
+    setDeleteReason('');
+    openDeleteModal();
+  };
+
   // 处理删除整合包
-  const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除这个整合包吗？此操作不可恢复。')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!selectedModpackId) return;
 
     try {
       const loginToken = localStorage.getItem('loginToken');
-      const response = await fetch(`${BACKEND_URL}/modpack/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/modpack/${selectedModpackId}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           loginToken: loginToken || '',
         },
+        body: JSON.stringify({
+          reason: deleteReason.trim() || '用户未提供删除原因'
+        }),
       });
 
       const result = await response.json();
@@ -134,6 +149,7 @@ export default function MyModpacksPage() {
           message: '整合包已删除',
           color: 'green',
         });
+        closeDeleteModal();
         mutate(); // 刷新列表
       } else {
         throw new Error(result.message || '删除失败');
@@ -284,7 +300,7 @@ export default function MyModpacksPage() {
                     variant="light"
                     color="red"
                     leftSection={<IconTrash size={16} />}
-                    onClick={() => handleDelete(modpack.id)}
+                    onClick={() => openDeleteConfirmation(modpack.id)}
                   >
                     删除
                   </Button>
@@ -314,6 +330,26 @@ export default function MyModpacksPage() {
           </Text>
         </Box>
       )}
+
+      {/* 删除确认对话框 */}
+      <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="确认删除" centered>
+        <Text mb="md">您确定要删除这个整合包吗？此操作不可恢复。</Text>
+        <TextInput
+          label="删除原因"
+          placeholder="请输入删除原因（可选）"
+          value={deleteReason}
+          onChange={(e) => setDeleteReason(e.target.value)}
+          mb="lg"
+        />
+        <Group justify="center">
+          <Button variant="outline" onClick={closeDeleteModal}>
+            取消
+          </Button>
+          <Button color="red" onClick={handleDelete}>
+            确认删除
+          </Button>
+        </Group>
+      </Modal>
     </Container>
   );
 }
