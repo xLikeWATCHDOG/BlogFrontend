@@ -13,7 +13,10 @@ interface UserLoginModalProps {
 }
 
 // Add these API fetcher functions
-const sendMailFetcher = async (_url: string, { arg }: { arg: { email: string; captcha: unknown } }) => {
+const sendMailFetcher = async (
+  _url: string,
+  { arg }: { arg: { email: string; captcha: unknown } }
+) => {
   const response = await fetch(`${BACKEND_URL}/user/mail`, {
     method: 'POST',
     headers: {
@@ -25,7 +28,10 @@ const sendMailFetcher = async (_url: string, { arg }: { arg: { email: string; ca
   return response.json();
 };
 
-async function sendPhoneFetcher(url: string, { arg }: { arg: { phone: string; captcha: unknown } }) {
+async function sendPhoneFetcher(
+  url: string,
+  { arg }: { arg: { phone: string; captcha: unknown } }
+) {
   const response = await fetch(`${BACKEND_URL}/user/phone/code`, {
     method: 'POST',
     headers: {
@@ -228,23 +234,40 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
             notifications.clean(); // 清理加载中的通知
 
             if (response.ok && data.code === 20000) {
+              console.log('登录成功，响应数据:', data); // 添加调试日志
+
               notifications.show({
                 title: '操作成功',
-                message: action === 'login' ? '欢迎回来！' : '注册成功！',
+                message:
+                  action === 'login'
+                    ? '欢迎回来！'
+                    : action === 'phone'
+                      ? '登录成功！'
+                      : '注册成功！',
                 color: 'teal',
                 autoClose: 2000,
               });
 
-              if ((action === 'login' || action === 'register') && data.data) {
+              if (
+                (action === 'login' || action === 'register' || action === 'phone') &&
+                data.data &&
+                data.data.token
+              ) {
+                console.log('设置token:', data.data.token); // 添加调试日志
+
                 const date = new Date();
                 date.setDate(date.getDate() + 7);
                 document.cookie = `loginToken=${data.data.token}; expires=${date.toUTCString()}; path=/; SameSite=Strict`;
                 localStorage.setItem('loginToken', data.data.token ?? '');
 
+                // 强制跳转
                 setTimeout(() => {
+                  console.log('准备刷新页面'); // 添加调试日志
                   handleClose();
                   window.location.reload();
                 }, 1000);
+              } else {
+                console.error('登录成功但没有token数据:', data); // 添加错误日志
               }
             } else {
               notifications.show({
@@ -533,9 +556,7 @@ export function UserLoginModal({ opened, onClose }: UserLoginModalProps) {
       case 'phone':
         return (
           <form
-            onSubmit={phoneForm.onSubmit((values) =>
-              handleFormSubmitWithCaptcha(values, 'phone')
-            )}
+            onSubmit={phoneForm.onSubmit((values) => handleFormSubmitWithCaptcha(values, 'phone'))}
           >
             <Stack>
               <TextInput
