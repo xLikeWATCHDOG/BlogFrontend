@@ -101,7 +101,12 @@ export default function UserProfile() {
       }
 
       try {
-        const response = await fetch(`${BACKEND_URL}/user/profile/${uid}`);
+        const loginToken = localStorage.getItem('loginToken');
+        const response = await fetch(`${BACKEND_URL}/user/profile/${uid}`, {
+          headers: {
+            loginToken: loginToken || '',
+          },
+        });
         const data = await response.json();
 
         if (data.code === 20000 && data.data) {
