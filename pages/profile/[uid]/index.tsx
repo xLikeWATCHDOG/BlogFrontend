@@ -208,9 +208,8 @@ export default function UserProfile() {
         radius="md"
         mb="xl"
         style={{
-          background: 'var(--mantine-color-dark-6)',
-          backgroundImage:
-            'var(--mantine-color-scheme) === "dark" ? none : linear-gradient(45deg, var(--mantine-color-blue-0), var(--mantine-color-cyan-0))',
+          background: 'var(--mantine-color-body)',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
         }}
       >
         <Grid>
@@ -222,7 +221,7 @@ export default function UserProfile() {
                 radius="md"
                 alt={user.username}
                 color="blue"
-                style={{ border: '4px solid var(--mantine-color-body)' }}
+                style={{ border: '4px solid var(--mantine-color-blue-2)' }}
               >
                 {user.username?.charAt(0)?.toUpperCase() || 'U'}
               </Avatar>
