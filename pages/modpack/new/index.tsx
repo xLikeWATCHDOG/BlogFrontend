@@ -26,6 +26,7 @@ export default function NewModpackPage() {
   const [modpackFile, setModpackFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // 表单定义
   const form = useForm({
@@ -58,6 +59,61 @@ export default function NewModpackPage() {
       logoFile: (value) => (!value ? '请上传整合包Logo' : null),
     },
   });
+
+  // 获取整合包信息并填充表单
+  const fetchModpackInfo = async (id: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${BACKEND_URL}/modpack/${id}`);
+      const data = await response.json();
+      
+      if (data.code === 20000 && data.data) {
+        const modpackData = data.data;
+        // 自动填充表单
+        form.setValues({
+          name: modpackData.name || '',
+          launchArguments: modpackData.launchArguments || '',
+          brief: modpackData.brief || '',
+          client: modpackData.client || '',
+          version: modpackData.version || '',
+          logoFile: null, // logo文件需要重新上传
+        });
+        
+        // 如果有logo URL，设置预览
+        if (modpackData.logoUrl) {
+          setLogoPreview(modpackData.logoUrl);
+        }
+        
+        setIsEditing(true);
+      } else {
+        notifications.show({
+          title: '错误',
+          message: '获取整合包信息失败',
+          color: 'red',
+          icon: <IconX size={16} />,
+        });
+      }
+    } catch (error) {
+      notifications.show({
+        title: '错误',
+        message: '网络错误，请稍后重试',
+        color: 'red',
+        icon: <IconX size={16} />,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 检查URL参数并获取整合包信息
+  React.useEffect(() => {
+    if (router.isReady) {
+      const { id } = router.query;
+      if (id && typeof id === 'string') {
+        fetchModpackInfo(id);
+      }
+    }
+  }, [router.isReady, router.query]);
 
   // 处理logo预览
   React.useEffect(() => {
@@ -148,7 +204,7 @@ export default function NewModpackPage() {
     <Box pb={80}>
       <Container size="sm" mt="xl">
         <Title order={2} ta="center" mb="xl">
-          上传新整合包
+          {isEditing ? '编辑整合包' : '上传新整合包'}
         </Title>
         <Paper p="md" withBorder shadow="sm">
           <LoadingOverlay visible={loading} />
@@ -171,7 +227,6 @@ export default function NewModpackPage() {
                 {...form.getInputProps('launchArguments')}
               />
               
-              {/* 其余表单字段保持不变 */}
               {/* 整合包版本 */}
               <TextInput
                 required

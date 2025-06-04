@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconRefresh, IconTrash } from '@tabler/icons-react';
 import useSWR from 'swr';
 import {
   Badge,
@@ -42,6 +42,7 @@ const statusMap = {
 // 整合包类型定义
 interface Modpack {
   id: number;
+  name: string;
   uid: number;
   logoId: number;
   launchArguments: string;
@@ -77,12 +78,12 @@ interface ApiResponse {
 // 获取整合包列表的fetcher函数
 const fetcher = async (url: string) => {
   const loginToken = localStorage.getItem('loginToken');
-  
+
   // 从URL中提取查询参数
   const urlObj = new URL(url);
   const current = urlObj.searchParams.get('current') || '1';
   const pageSize = urlObj.searchParams.get('pageSize') || '10';
-  
+
   // 使用POST请求并发送JSON数据
   const response = await fetch(`${BACKEND_URL}/modpack/list`, {
     method: 'POST',
@@ -244,7 +245,7 @@ export default function MyModpacksPage() {
 
               <Box style={{ flex: 1 }}>
                 <Group justify="space-between" mb="xs">
-                  <Title order={4}>{modpack.client}</Title>
+                  <Title order={4}>{modpack.name}</Title>
                   <Badge color={statusMap[modpack.status as ModpackStatus].color}>
                     {statusMap[modpack.status as ModpackStatus].label}
                   </Badge>
@@ -284,16 +285,14 @@ export default function MyModpacksPage() {
                     </Button>
                   )}
 
-                  {modpack.status === ModpackStatus.FAILED && (
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconEdit size={16} />}
-                      onClick={() => router.push(`/modpack/edit/${modpack.id}`)}
-                    >
-                      编辑
-                    </Button>
-                  )}
+                  <Button
+                    size="xs"
+                    variant="light"
+                    leftSection={<IconRefresh size={16} />}
+                    onClick={() => router.push(`/modpack/new?id=${modpack.id}`)}
+                  >
+                    更新
+                  </Button>
 
                   <Button
                     size="xs"

@@ -1,13 +1,32 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconDashboard, IconFlag, IconLogout, IconPackage, IconPlus, IconSearch, IconSettings, IconUserCircle } from '@tabler/icons-react';
-import { AppShell, Autocomplete, Avatar, Burger, Button, Divider, Drawer, Group, Menu, Stack, Text, Title } from '@mantine/core';
+import {
+  IconDashboard,
+  IconFlag,
+  IconLogout,
+  IconPackage,
+  IconPlus,
+  IconSettings,
+  IconUserCircle,
+} from '@tabler/icons-react';
+import {
+  AppShell,
+  Avatar,
+  Burger,
+  Button,
+  Divider,
+  Drawer,
+  Group,
+  Menu,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { UserLoginModal } from '@/components/User/UserLoginModal';
 import { BACKEND_URL } from '@/data/global';
-
 
 interface UserVO {
   uid: number;
@@ -141,35 +160,6 @@ export function HeaderComponent() {
     console.log('执行搜索:', value);
   }, []);
 
-  const NavLinks = () => (
-    <>
-      <Link href="/" style={{ textDecoration: 'none' }}>
-        <Button variant="transparent" size="lg">
-          <Text variant="gradient" gradient={{ from: 'violet', to: 'cyan' }} size="lg" fw={500}>
-            主页
-          </Text>
-        </Button>
-      </Link>
-      <Link href="/rank" style={{ textDecoration: 'none' }}>
-        <Button variant="transparent" size="lg">
-          <Text variant="gradient" gradient={{ from: 'indigo', to: 'grape' }} size="lg" fw={500}>
-            排行
-          </Text>
-        </Button>
-      </Link>
-
-      <Divider orientation="vertical" />
-
-      <Link href="/modpack" style={{ textDecoration: 'none' }}>
-        <Button variant="transparent" size="lg">
-          <Text variant="gradient" gradient={{ from: 'teal', to: 'lime' }} size="lg" fw={500}>
-            整合包
-          </Text>
-        </Button>
-      </Link>
-    </>
-  );
-
   return (
     <>
       <AppShell.Header>
@@ -186,35 +176,13 @@ export function HeaderComponent() {
                   component="span"
                   gradient={{ from: 'pink', to: 'blue' }}
                 >
-                  Birdy的博客
+                  整合包中心
                 </Text>
               </Title>
             </Link>
           </Group>
 
-          {!isMobile && (
-            <Group gap="xs">
-              <NavLinks />
-            </Group>
-          )}
-
           <Group gap="xs">
-            {!isSmallScreen && (
-              <Autocomplete
-                value={searchValue}
-                onChange={setSearchValue}
-                placeholder="搜索文章/整合包..."
-                leftSection={<IconSearch size={16} />}
-                data={mockSuggestions}
-                size="sm"
-                w={200}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && searchValue !== '') {
-                    handleSearchSubmit(searchValue);
-                  }
-                }}
-              />
-            )}
             {!loading &&
               (user ? (
                 <>
@@ -225,7 +193,6 @@ export function HeaderComponent() {
                       </Button>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item onClick={() => router.push('/blog/new')}>新帖子</Menu.Item>
                       <Menu.Item onClick={() => router.push('/modpack/new')}>新资源</Menu.Item>
                     </Menu.Dropdown>
                   </Menu>
@@ -315,37 +282,11 @@ export function HeaderComponent() {
         }
       >
         <Group gap="sm">
-          {isSmallScreen && (
-            <Autocomplete
-              value={searchValue}
-              onChange={setSearchValue}
-              placeholder="搜索文章/整合包..."
-              leftSection={<IconSearch size={16} />}
-              data={mockSuggestions}
-              w="100%"
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && searchValue !== '') {
-                  handleSearchSubmit(searchValue);
-                  close();
-                }
-              }}
-            />
-          )}
           <Stack w="100%">
-            <NavLinks />
             {user && (
               <>
                 <Divider />
                 <Text fw={500}>发表内容</Text>
-                <Button
-                  variant="light"
-                  onClick={() => {
-                    router.push('/blog/new');
-                    close();
-                  }}
-                >
-                  新帖子
-                </Button>
                 <Button
                   variant="light"
                   onClick={() => {
