@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { IconDownload, IconEdit, IconRefresh, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconRefresh, IconTrash, IconChevronDown } from '@tabler/icons-react';
 import useSWR from 'swr';
 import {
   Badge,
@@ -13,11 +13,12 @@ import {
   Image,
   Loader,
   Modal,
-  Pagination,
   Stack,
   Text,
   TextInput,
   Title,
+  Select,
+  Collapse,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -42,8 +43,8 @@ const statusMap = {
 // 整合包类型定义
 interface Modpack {
   id: number;
-  name: string;
   uid: number;
+  name: string;
   logoId: number;
   launchArguments: string;
   brief: string;
@@ -57,34 +58,29 @@ interface Modpack {
   createTime: string;
   updateTime: string;
   logoMd5: string;
-}
-
-// 分页响应类型
-interface PageResponse {
-  records: Modpack[];
-  totalPage: number;
-  pageSize: number;
-  pageNumber: number;
-  totalRow: number;
+  modpackStatus: string;
+  available: number;
 }
 
 // API响应类型
 interface ApiResponse {
   code: number;
   message: string;
-  data: PageResponse;
+  data: Modpack[];
 }
 
-// 获取整合包列表的fetcher函数
+// 分组后的ModPack类型
+interface GroupedModpack {
+  name: string;
+  versions: Modpack[];
+  defaultSelectedId: number;
+}
+
+// 获取整合包列表的fetcher函数 - 移除分页参数
 const fetcher = async (url: string) => {
   const loginToken = localStorage.getItem('loginToken');
 
-  // 从URL中提取查询参数
-  const urlObj = new URL(url);
-  const current = urlObj.searchParams.get('current') || '1';
-  const pageSize = urlObj.searchParams.get('pageSize') || '10';
-
-  // 使用POST请求并发送JSON数据
+  // 使用POST请求获取所有数据，不再使用分页
   const response = await fetch(`${BACKEND_URL}/modpack/list`, {
     method: 'POST',
     headers: {
@@ -92,8 +88,8 @@ const fetcher = async (url: string) => {
       loginToken: loginToken || '',
     },
     body: JSON.stringify({
-      current: parseInt(current),
-      pageSize: parseInt(pageSize)
+      current: 1,
+      pageSize: 1000 // 设置一个较大的值来获取所有数据
     }),
   });
 
@@ -106,17 +102,72 @@ const fetcher = async (url: string) => {
 
 export default function MyModpacksPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [selectedModpackId, setSelectedModpackId] = useState<number | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // 新增：管理每个分组的选中版本
+  const [selectedVersions, setSelectedVersions] = useState<Record<string, number>>({});
 
-  // 获取整合包列表数据 - 修改URL格式以适应fetcher函数
+  // 获取整合包列表数据 - 移除分页参数
   const { data, error, mutate } = useSWR<ApiResponse>(
-    `${BACKEND_URL}/modpack/list?current=${page}&pageSize=${pageSize}`,
+    `${BACKEND_URL}/modpack/list`,
     fetcher
   );
+
+  // 按名称分组ModPack
+  const groupedModpacks: GroupedModpack[] = useMemo(() => {
+    if (!data?.data) return [];
+    
+    const groups = new Map<string, Modpack[]>();
+    
+    // 按名称分组
+    data.data.forEach(modpack => {
+      const name = modpack.name;
+      if (!groups.has(name)) {
+        groups.set(name, []);
+      }
+      groups.get(name)!.push(modpack);
+    });
+    
+    // 转换为GroupedModpack格式，并按创建时间排序版本
+    return Array.from(groups.entries()).map(([name, versions]) => {
+      const sortedVersions = versions.sort((a, b) => 
+        new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+      );
+      
+      return {
+        name,
+        versions: sortedVersions,
+        defaultSelectedId: sortedVersions[0].id // 默认选择最新版本的ID
+      };
+    });
+  }, [data]);
+
+  // 获取当前选中的版本
+  const getSelectedVersion = (group: GroupedModpack): Modpack => {
+    const selectedId = selectedVersions[group.name] || group.defaultSelectedId;
+    return group.versions.find(v => v.id === selectedId) || group.versions[0];
+  };
+
+  // 切换分组展开状态
+  const toggleGroup = (groupName: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(groupName)) {
+      newExpanded.delete(groupName);
+    } else {
+      newExpanded.add(groupName);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
+  // 更新选中的版本
+  const updateSelectedVersion = (groupName: string, versionId: number) => {
+    setSelectedVersions(prev => ({
+      ...prev,
+      [groupName]: versionId
+    }));
+  };
 
   // 打开删除确认对话框
   const openDeleteConfirmation = (id: number) => {
@@ -125,7 +176,6 @@ export default function MyModpacksPage() {
     openDeleteModal();
   };
 
-  // 处理删除整合包
   const handleDelete = async () => {
     if (!selectedModpackId) return;
 
@@ -151,7 +201,7 @@ export default function MyModpacksPage() {
           color: 'green',
         });
         closeDeleteModal();
-        mutate(); // 刷新列表
+        mutate();
       } else {
         throw new Error(result.message || '删除失败');
       }
@@ -164,12 +214,10 @@ export default function MyModpacksPage() {
     }
   };
 
-  // 处理下载整合包
   const handleDownload = (id: number) => {
     window.open(`${BACKEND_URL}/modpack/download/${id}`, '_blank');
   };
 
-  // 格式化文件大小
   const formatFileSize = (size: number) => {
     if (size < 1024) {
       return `${size} B`;
@@ -211,7 +259,7 @@ export default function MyModpacksPage() {
   }
 
   // 空数据状态
-  if (!data?.data?.records || data.data.records.length === 0) {
+  if (!data?.data || data.data.length === 0) {
     return (
       <Container size="lg" py="xl">
         <Box ta="center">
@@ -232,103 +280,194 @@ export default function MyModpacksPage() {
       </Group>
 
       <Stack gap="md">
-        {data?.data.records.map((modpack) => (
-          <Card key={modpack.id} withBorder shadow="sm" padding="lg">
-            <Group align="flex-start" wrap="nowrap">
-              <Image
-                src={`${BACKEND_URL}/photo/${modpack.logoMd5}`}
-                alt={`整合包 ${modpack.id} 的图标`}
-                width={100}
-                height={100}
-                radius="md"
-              />
+        {groupedModpacks.map((group) => {
+          const isExpanded = expandedGroups.has(group.name);
+          const displayModpack = getSelectedVersion(group);
+          
+          return (
+            <Card key={group.name} withBorder shadow="sm" padding="lg">
+              <Group align="flex-start" wrap="nowrap">
+                <Image
+                  src={`${BACKEND_URL}/photo/${displayModpack.logoMd5}`}
+                  alt={`整合包 ${displayModpack.name} 的图标`}
+                  width={100}
+                  height={100}
+                  radius="md"
+                />
 
-              <Box style={{ flex: 1 }}>
-                <Group justify="space-between" mb="xs">
-                  <Title order={4}>{modpack.name}</Title>
-                  <Badge color={statusMap[modpack.status as ModpackStatus].color}>
-                    {statusMap[modpack.status as ModpackStatus].label}
-                  </Badge>
-                </Group>
+                <Box style={{ flex: 1 }}>
+                  <Group justify="space-between" mb="xs">
+                    <Title order={4}>{group.name}</Title>
+                    <Group gap="xs">
+                      <Badge color={statusMap[displayModpack.status as ModpackStatus].color}>
+                        {statusMap[displayModpack.status as ModpackStatus].label}
+                      </Badge>
+                      {group.versions.length > 1 && (
+                        <Badge variant="light" color="blue">
+                          {group.versions.length} 个版本
+                        </Badge>
+                      )}
+                    </Group>
+                  </Group>
 
-                <Text size="sm" mb="xs">
-                  版本: {modpack.version}
-                </Text>
+                  {/* 版本选择器 */}
+                  {group.versions.length > 1 && (
+                    <Group mb="xs">
+                      <Text size="sm" fw={500}>版本:</Text>
+                      <Select
+                        size="xs"
+                        value={displayModpack.id.toString()}
+                        data={group.versions.map(v => ({
+                          value: v.id.toString(),
+                          label: `${v.version} (${new Date(v.createTime).toLocaleDateString()})`
+                        }))}
+                        onChange={(value) => {
+                          if (value) {
+                            const versionId = parseInt(value);
+                            updateSelectedVersion(group.name, versionId);
+                          }
+                        }}
+                        style={{ minWidth: 200 }}
+                      />
+                    </Group>
+                  )}
 
-                <Text size="sm" mb="xs">
-                  大小: {formatFileSize(modpack.fileSize)}
-                </Text>
-
-                <Text size="sm" mb="xs" lineClamp={2}>
-                  启动参数: {modpack.launchArguments}
-                </Text>
-
-                <Text size="sm" lineClamp={2}>
-                  简介: {modpack.brief}
-                </Text>
-
-                {modpack.status === ModpackStatus.FAILED && (
-                  <Text size="sm" c="red" mt="xs">
-                    拒绝原因: {modpack.reason || '未提供原因'}
+                  <Text size="sm" mb="xs">
+                    当前版本: {displayModpack.version}
                   </Text>
-                )}
 
-                <Group mt="md" gap="xs">
-                  {modpack.status === ModpackStatus.PASSED && (
+                  <Text size="sm" mb="xs">
+                    大小: {formatFileSize(displayModpack.fileSize)}
+                  </Text>
+
+                  <Text size="sm" mb="xs" lineClamp={2}>
+                    启动参数: {displayModpack.launchArguments}
+                  </Text>
+
+                  <Text size="sm" lineClamp={2}>
+                    简介: {displayModpack.brief}
+                  </Text>
+
+                  {displayModpack.status === ModpackStatus.FAILED && (
+                    <Text size="sm" c="red" mt="xs">
+                      拒绝原因: {displayModpack.reason || '未提供原因'}
+                    </Text>
+                  )}
+
+                  <Group mt="md" gap="xs">
+                    {displayModpack.status === ModpackStatus.PASSED && (
+                      <Button
+                        size="xs"
+                        variant="light"
+                        leftSection={<IconDownload size={16} />}
+                        onClick={() => handleDownload(displayModpack.id)}
+                      >
+                        下载
+                      </Button>
+                    )}
+
+                    {displayModpack.status === ModpackStatus.FAILED && (
+                      <Button
+                        size="xs"
+                        variant="light"
+                        leftSection={<IconEdit size={16} />}
+                        onClick={() => router.push(`/modpack/edit/${displayModpack.id}`)}
+                      >
+                        编辑
+                      </Button>
+                    )}
+
                     <Button
                       size="xs"
                       variant="light"
-                      leftSection={<IconDownload size={16} />}
-                      onClick={() => handleDownload(modpack.id)}
+                      leftSection={<IconRefresh size={16} />}
+                      onClick={() => router.push(`/modpack/new?id=${displayModpack.id}&type=update`)}
                     >
-                      下载
+                      更新
                     </Button>
-                  )}
 
-                  <Button
-                    size="xs"
-                    variant="light"
-                    leftSection={<IconRefresh size={16} />}
-                    onClick={() => router.push(`/modpack/new?id=${modpack.id}`)}
-                  >
-                    更新
-                  </Button>
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="blue"
+                      leftSection={<IconEdit size={16} />}
+                      onClick={() => router.push(`/modpack/new?id=${displayModpack.id}&type=edit`)}
+                    >
+                      编辑
+                    </Button>
 
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color="red"
-                    leftSection={<IconTrash size={16} />}
-                    onClick={() => openDeleteConfirmation(modpack.id)}
-                  >
-                    删除
-                  </Button>
-                </Group>
-              </Box>
-            </Group>
-          </Card>
-        ))}
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="red"
+                      leftSection={<IconTrash size={16} />}
+                      onClick={() => openDeleteConfirmation(displayModpack.id)}
+                    >
+                      删除
+                    </Button>
+
+                    {group.versions.length > 1 && (
+                      <Button
+                        size="xs"
+                        variant="subtle"
+                        leftSection={<IconChevronDown size={16} style={{ 
+                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }} />}
+                        onClick={() => toggleGroup(group.name)}
+                      >
+                        {isExpanded ? '收起' : '查看所有版本'}
+                      </Button>
+                    )}
+                  </Group>
+
+                  {/* 展开的版本列表 */}
+                  <Collapse in={isExpanded}>
+                    <Box mt="md" p="md" bg="gray.0" style={{ borderRadius: 8 }}>
+                      <Text size="sm" fw={500} mb="xs">所有版本:</Text>
+                      <Stack gap="xs">
+                        {group.versions.map((version) => (
+                          // Line 429 - Current correct implementation
+                          <Group key={version.id} justify="space-between" p="xs" bg="white" style={{ borderRadius: '0.25rem' }}>
+                            <Group gap="xs">
+                              <Text size="sm">{version.version}</Text>
+                              <Badge size="xs" color={statusMap[version.status as ModpackStatus].color}>
+                                {statusMap[version.status as ModpackStatus].label}
+                              </Badge>
+                              <Text size="xs" c="dimmed">
+                                {new Date(version.createTime).toLocaleString()}
+                              </Text>
+                            </Group>
+                            <Group gap="xs">
+                              {version.status === ModpackStatus.PASSED && (
+                                <Button
+                                  size="xs"
+                                  variant="light"
+                                  onClick={() => handleDownload(version.id)}
+                                >
+                                  下载
+                                </Button>
+                              )}
+                              <Button
+                                size="xs"
+                                variant="light"
+                                color="red"
+                                onClick={() => openDeleteConfirmation(version.id)}
+                              >
+                                删除
+                              </Button>
+                            </Group>
+                          </Group>
+                        ))}
+                      </Stack>
+                    </Box>
+                  </Collapse>
+                </Box>
+              </Group>
+            </Card>
+          );
+        })}
       </Stack>
-
-      {data?.data?.totalPage > 0 && (
-        <Box mt="xl" mb={60} py="md">
-          <Flex justify="center">
-            <Pagination
-              total={data.data.totalPage}
-              value={page}
-              onChange={(newPage) => {
-                setPage(newPage);
-                window.scrollTo(0, 0);
-              }}
-              withEdges
-              siblings={1}
-            />
-          </Flex>
-          <Text ta="center" size="sm" c="dimmed" mt="xs">
-            共 {data.data.totalRow} 条记录，第 {page} / {data.data.totalPage} 页
-          </Text>
-        </Box>
-      )}
 
       {/* 删除确认对话框 */}
       <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="确认删除" centered>
