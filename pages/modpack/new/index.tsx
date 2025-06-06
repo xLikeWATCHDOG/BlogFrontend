@@ -9,7 +9,9 @@ import {
   Group,
   Image,
   LoadingOverlay,
+  Modal,
   Paper,
+  Progress,
   Stack,
   Text,
   Textarea,
@@ -23,6 +25,8 @@ import { BACKEND_URL } from '@/data/global';
 export default function NewModpackPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [modpackFile, setModpackFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -62,11 +66,17 @@ export default function NewModpackPage() {
 
   // 获取整合包信息并填充表单
   const fetchModpackInfo = async (id: string) => {
+    const loginToken = localStorage.getItem('loginToken');
     try {
       setLoading(true);
-      const response = await fetch(`${BACKEND_URL}/modpack/${id}`);
+      const response = await fetch(`${BACKEND_URL}/modpack/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          loginToken: loginToken || '',
+        }});
       const data = await response.json();
-      
+
       if (data.code === 20000 && data.data) {
         const modpackData = data.data;
         // 自动填充表单
@@ -78,12 +88,12 @@ export default function NewModpackPage() {
           version: modpackData.version || '',
           logoFile: null, // logo文件需要重新上传
         });
-        
+
         // 如果有logo URL，设置预览
         if (modpackData.logoUrl) {
           setLogoPreview(modpackData.logoUrl);
         }
-        
+
         setIsEditing(true);
       } else {
         notifications.show({
@@ -126,7 +136,22 @@ export default function NewModpackPage() {
     }
   }, [logoFile]);
 
-  // 提交表单
+  // 文件大小检查
+  const validateFileSize = (file: File) => {
+    const maxSize = 3 * 1024 * 1024 * 1024; // 3GB
+    if (file.size > maxSize) {
+      notifications.show({
+        title: '文件过大',
+        message: '文件大小不能超过3GB',
+        color: 'red',
+        icon: <IconX size={16} />,
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // 提交表单 - 支持进度条模态框
   const handleSubmit = async (values: typeof form.values) => {
     if (!modpackFile) {
       notifications.show({
@@ -138,14 +163,20 @@ export default function NewModpackPage() {
       return;
     }
 
+    if (!validateFileSize(modpackFile)) {
+      return;
+    }
+
     try {
-      // 使用腾讯验证码
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
       const captcha = new TencentCaptcha('190249560', async (res) => {
         if (res.ret === 0) {
           try {
             setLoading(true);
+            setUploadProgress(0);
+            setShowUploadModal(true); // 显示上传模态框
+
             const formData = new FormData();
             formData.append('modpackFile', modpackFile);
             if (logoFile) formData.append('logoFile', logoFile);
@@ -156,37 +187,60 @@ export default function NewModpackPage() {
             formData.append('version', values.version);
 
             const loginToken = localStorage.getItem('loginToken');
-            const response = await fetch(`${BACKEND_URL}/modpack/upload`, {
-              method: 'POST',
-              headers: {
-                loginToken: loginToken || '',
-                captcha: JSON.stringify(res),
-              },
-              body: formData,
+
+            // 使用XMLHttpRequest支持进度监听
+            const xhr = new XMLHttpRequest();
+
+            // 监听上传进度
+            xhr.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setUploadProgress(percentComplete);
+              }
             });
 
-            const data = await response.json();
+            // 处理响应
+            xhr.addEventListener('load', () => {
+              setShowUploadModal(false); // 隐藏模态框
+              if (xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                if (data.code === 20000) {
+                  notifications.show({
+                    title: '成功',
+                    message: '整合包上传成功',
+                    color: 'green',
+                    icon: <IconCheck size={16} />,
+                  });
+                  router.push('/modpack/my');
+                } else {
+                  throw new Error(data.message || '上传失败');
+                }
+              } else {
+                throw new Error('网络错误');
+              }
+            });
 
-            if (data.code === 20000) {
-              notifications.show({
-                title: '成功',
-                message: '整合包上传成功',
-                color: 'green',
-                icon: <IconCheck size={16} />,
-              });
-              router.push('/modpack/my');
-            } else {
-              throw new Error(data.message || '上传失败');
-            }
+            xhr.addEventListener('error', () => {
+              setShowUploadModal(false); // 隐藏模态框
+              throw new Error('网络错误，请稍后重试');
+            });
+
+            // 发送请求
+            xhr.open('POST', `${BACKEND_URL}/modpack/upload`);
+            xhr.setRequestHeader('loginToken', loginToken || '');
+            xhr.setRequestHeader('captcha', JSON.stringify(res));
+            xhr.send(formData);
+
           } catch (error) {
+            setShowUploadModal(false); // 隐藏模态框
             notifications.show({
               title: '错误',
               message: error instanceof Error ? error.message : '网络错误，请稍后重试',
               color: 'red',
               icon: <IconX size={16} />,
             });
-          } finally {
             setLoading(false);
+            setUploadProgress(0);
           }
         }
       });
@@ -201,158 +255,216 @@ export default function NewModpackPage() {
   };
 
   return (
-    <Box pb={80}>
-      <Container size="sm" mt="xl">
-        <Title order={2} ta="center" mb="xl">
-          {isEditing ? '编辑整合包' : '上传新整合包'}
-        </Title>
-        <Paper p="md" withBorder shadow="sm">
-          <LoadingOverlay visible={loading} />
+    <>
+      {/* 上传进度模态框 */}
+      <Modal
+        opened={showUploadModal}
+        onClose={() => {}} // 禁止手动关闭
+        title="上传进度"
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        withCloseButton={false}
+        size="md"
+        overlayProps={{
+          backgroundOpacity: 0.7,
+          blur: 3,
+        }}
+      >
+        <Stack gap="md" p="md">
+          <Text size="lg" fw={500} ta="center">
+            正在上传整合包...
+          </Text>
 
-          <form onSubmit={form.onSubmit(handleSubmit)}>
-            <Stack gap="md">
-              {/* 整合包名称 */}
-              <TextInput
-                required
-                label="整合包名称"
-                placeholder="输入整合包名称"
-                {...form.getInputProps('name')}
-              />
+          <Box>
+            <Group justify="space-between" mb={5}>
+              <Text size="sm">上传进度</Text>
+              <Text size="sm" fw={500}>{uploadProgress}%</Text>
+            </Group>
+            <Progress
+              value={uploadProgress}
+              size="xl"
+              radius="md"
+              animated
+              color="blue"
+            />
+          </Box>
 
-              {/* 启动参数 */}
-              <TextInput
-                required
-                label="启动参数"
-                placeholder="输入整合包启动参数"
-                {...form.getInputProps('launchArguments')}
-              />
-              
-              {/* 整合包版本 */}
-              <TextInput
-                required
-                label="整合包版本"
-                placeholder="输入整合包版本号，如1.0.0"
-                {...form.getInputProps('version')}
-              />
+          {modpackFile && (
+            <Text size="sm" c="dimmed" ta="center">
+              文件: {modpackFile.name} ({Math.round((modpackFile.size / 1024 / 1024) * 100) / 100}MB)
+            </Text>
+          )}
 
-              {/* 整合包上传 */}
-              <Box>
-                <Text fw={500} size="sm" mb={5}>
-                  整合包文件{' '}
-                  <Text component="span" c="red">
-                    *
-                  </Text>
-                </Text>
-                <Group
-                  justify="center"
-                  gap="xl"
-                  p="md"
-                  style={{ border: '1px dashed #ced4da', borderRadius: '4px' }}
-                >
-                  <FileButton onChange={setModpackFile} accept=".zip">
-                    {(props) => (
-                      <Button {...props} leftSection={<IconUpload size={16} />}>
-                        选择整合包文件
-                      </Button>
-                    )}
-                  </FileButton>
-                  {modpackFile && (
-                    <Text size="sm">
-                      已选择: {modpackFile.name} (
-                      {Math.round((modpackFile.size / 1024 / 1024) * 100) / 100}MB)
-                    </Text>
-                  )}
-                </Group>
-                {!modpackFile && form.isTouched() && (
-                  <Text c="red" size="xs" mt={5}>
-                    请上传整合包文件 (仅支持.zip格式)
-                  </Text>
-                )}
-              </Box>
+          <Text size="xs" c="dimmed" ta="center">
+            请勿关闭页面，上传过程中请耐心等待...
+          </Text>
+        </Stack>
+      </Modal>
 
-              {/* 简介 */}
-              <Textarea
-                required
-                label="整合包简介"
-                placeholder="请输入整合包的简要描述"
-                minRows={4}
-                {...form.getInputProps('brief')}
-              />
+      <Box pb={80}>
+        <Container size="sm" mt="xl">
+          <Title order={2} ta="center" mb="xl">
+            {isEditing ? '编辑整合包' : '上传新整合包'}
+          </Title>
+          <Paper p="md" withBorder shadow="sm">
+            <LoadingOverlay visible={loading && !showUploadModal} />
 
-              {/* 客户端 */}
-              <TextInput
-                required
-                label="作者链接"
-                placeholder="输入作者链接或联系方式"
-                {...form.getInputProps('client')}
-              />
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+              <Stack gap="md">
+                {/* 整合包名称 */}
+                <TextInput
+                  required
+                  label="整合包名称"
+                  placeholder="输入整合包名称"
+                  {...form.getInputProps('name')}
+                />
 
-              {/* Logo上传 */}
-              <Box>
-                <Text fw={500} size="sm" mb={5}>
-                  整合包Logo{' '}
-                  <Text component="span" c="red">
-                    *
-                  </Text>
-                </Text>
-                <Group
-                  justify="center"
-                  gap="xl"
-                  p="md"
-                  style={{ border: '1px dashed #ced4da', borderRadius: '4px' }}
-                >
-                  <FileButton
-                    onChange={(file) => {
-                      setLogoFile(file);
-                      form.setFieldValue('logoFile', file);
-                    }}
-                    accept="image/png,image/jpeg,image/gif"
-                  >
-                    {(props) => (
-                      <Button {...props} leftSection={<IconUpload size={16} />}>
-                        选择Logo图片
-                      </Button>
-                    )}
-                  </FileButton>
-                  {form.values.logoFile && (
-                    <Text size="sm">已选择: {form.values.logoFile.name}</Text>
-                  )}
-                </Group>
-                {form.errors.logoFile && (
-                  <Text c="red" size="xs" mt={5}>
-                    {form.errors.logoFile}
-                  </Text>
-                )}
-              </Box>
+                {/* 启动参数 */}
+                <TextInput
+                  required
+                  label="启动参数"
+                  placeholder="输入整合包启动参数"
+                  {...form.getInputProps('launchArguments')}
+                />
 
-              {logoPreview && (
+                {/* 整合包版本 */}
+                <TextInput
+                  required
+                  label="整合包版本"
+                  placeholder="输入整合包版本号，如1.0.0"
+                  {...form.getInputProps('version')}
+                />
+
+                {/* 整合包上传 */}
                 <Box>
                   <Text fw={500} size="sm" mb={5}>
-                    预览:
+                    整合包文件{' '}
+                    <Text component="span" c="red">
+                      *
+                    </Text>
+                    <Text component="span" c="dimmed" size="xs">
+                      {' '}(最大3GB)
+                    </Text>
                   </Text>
-                  <Image
-                    src={logoPreview}
-                    width={200}
-                    height={150}
-                    fit="cover"
-                    radius="md"
-                    alt="Logo预览"
-                  />
+                  <Group
+                    justify="center"
+                    gap="xl"
+                    p="md"
+                    style={{ border: '1px dashed #ced4da', borderRadius: '4px' }}
+                  >
+                    <FileButton
+                      onChange={(file) => {
+                        if (file && validateFileSize(file)) {
+                          setModpackFile(file);
+                        }
+                      }}
+                      accept=".zip"
+                    >
+                      {(props) => (
+                        <Button {...props} leftSection={<IconUpload size={16} />}>
+                          选择整合包文件
+                        </Button>
+                      )}
+                    </FileButton>
+                    {modpackFile && (
+                      <Text size="sm">
+                        已选择: {modpackFile.name} (
+                        {Math.round((modpackFile.size / 1024 / 1024) * 100) / 100}MB)
+                      </Text>
+                    )}
+                  </Group>
+                  {!modpackFile && form.isTouched() && (
+                    <Text c="red" size="xs" mt={5}>
+                      请上传整合包文件 (仅支持.zip格式，最大3GB)
+                    </Text>
+                  )}
                 </Box>
-              )}
 
-              <Group justify="flex-end" mt="md">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                  取消
-                </Button>
-                <Button type="submit" loading={loading}>
-                  提交
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        </Paper>
-      </Container>
-    </Box>
+                {/* 简介 */}
+                <Textarea
+                  required
+                  label="整合包简介"
+                  placeholder="请输入整合包的简要描述"
+                  minRows={4}
+                  {...form.getInputProps('brief')}
+                />
+
+                {/* 客户端 */}
+                <TextInput
+                  required
+                  label="作者链接"
+                  placeholder="输入作者链接或联系方式"
+                  {...form.getInputProps('client')}
+                />
+
+                {/* Logo上传 */}
+                <Box>
+                  <Text fw={500} size="sm" mb={5}>
+                    整合包Logo{' '}
+                    <Text component="span" c="red">
+                      *
+                    </Text>
+                  </Text>
+                  <Group
+                    justify="center"
+                    gap="xl"
+                    p="md"
+                    style={{ border: '1px dashed #ced4da', borderRadius: '4px' }}
+                  >
+                    <FileButton
+                      onChange={(file) => {
+                        setLogoFile(file);
+                        form.setFieldValue('logoFile', file);
+                      }}
+                      accept="image/png,image/jpeg,image/gif"
+                    >
+                      {(props) => (
+                        <Button {...props} leftSection={<IconUpload size={16} />}>
+                          选择Logo图片
+                        </Button>
+                      )}
+                    </FileButton>
+                    {form.values.logoFile && (
+                      <Text size="sm">已选择: {form.values.logoFile.name}</Text>
+                    )}
+                  </Group>
+                  {form.errors.logoFile && (
+                    <Text c="red" size="xs" mt={5}>
+                      {form.errors.logoFile}
+                    </Text>
+                  )}
+                </Box>
+
+                {logoPreview && (
+                  <Box>
+                    <Text fw={500} size="sm" mb={5}>
+                      预览:
+                    </Text>
+                    <Image
+                      src={logoPreview}
+                      width={200}
+                      height={150}
+                      fit="cover"
+                      radius="md"
+                      alt="Logo预览"
+                    />
+                  </Box>
+                )}
+
+                <Group justify="flex-end" mt="md">
+                  <Button type="button" variant="outline" onClick={() => router.back()}>
+                    取消
+                  </Button>
+                  <Button type="submit" loading={loading}>
+                    提交
+                  </Button>
+                </Group>
+              </Stack>
+            </form>
+          </Paper>
+        </Container>
+      </Box>
+    </>
   );
 }
