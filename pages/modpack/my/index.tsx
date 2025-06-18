@@ -66,7 +66,13 @@ interface Modpack {
 interface ApiResponse {
   code: number;
   message: string;
-  data: Modpack[];
+  data: {
+    records: Modpack[];
+    pageNumber: number;
+    pageSize: number;
+    totalPage: number;
+    totalRow: number;
+  };
 }
 
 // 分组后的ModPack类型
@@ -117,12 +123,12 @@ export default function MyModpacksPage() {
 
   // 按名称分组ModPack
   const groupedModpacks: GroupedModpack[] = useMemo(() => {
-    if (!data?.data) return [];
+    if (!data?.data?.records) return [];
     
     const groups = new Map<string, Modpack[]>();
     
     // 按名称分组
-    data.data.forEach(modpack => {
+    data.data.records.forEach(modpack => {
       const name = modpack.name;
       if (!groups.has(name)) {
         groups.set(name, []);
@@ -259,7 +265,7 @@ export default function MyModpacksPage() {
   }
 
   // 空数据状态
-  if (!data?.data || data.data.length === 0) {
+  if (!data?.data?.records || data.data.records.length === 0) {
     return (
       <Container size="lg" py="xl">
         <Box ta="center">

@@ -209,12 +209,6 @@ export function HeaderComponent() {
 
                     <Menu.Dropdown>
                       <Menu.Item
-                        leftSection={<IconUserCircle size={14} />}
-                        onClick={() => router.push(`/profile/${user.uid}`)}
-                      >
-                        主页
-                      </Menu.Item>
-                      <Menu.Item
                         leftSection={<IconSettings size={14} />}
                         onClick={() => router.push(`/settings`)}
                       >
